@@ -14,7 +14,7 @@ Name | Type | Description | Notes
 **amountLocalCur** | **Float** | Cost of product in local currency – only set for FIXED amounts. |  [optional]
 **description** | **String** | Optional description of product |  [optional]
 **optStrg** | **String** | Optional string field |  [optional]
-**optNmb** | **BigDecimal** | Optional number field |  [optional]
+**optNmb** | [**BigDecimal**](BigDecimal.md) | Optional number field |  [optional]
 
 
 <a name="AmountTypeEnum"></a>
@@ -23,3 +23,6 @@ Name | Value
 ---- | -----
 FIXED | &quot;FIXED&quot;
 CUSTOM | &quot;CUSTOM&quot;
+
+
+
