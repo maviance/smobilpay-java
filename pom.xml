@@ -1,17 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.swagger</groupId>
-    <artifactId>swagger-java-client</artifactId>
+    <groupId>com.maviance.app</groupId>
+    <artifactId>s3p-java-client</artifactId>
     <packaging>jar</packaging>
-    <name>swagger-java-client</name>
-    <version>1.0.0</version>
-    <url>https://github.com/swagger-api/swagger-codegen</url>
-    <description>Swagger Java</description>
+    <name>s3p-java-client</name>
+    <version>3.0.2</version>
+    <url>https://github.com/maviance/smobilpay-java</url>
+    <description>Java s3p API client</description>
     <scm>
-        <connection>scm:git:git@github.com:swagger-api/swagger-codegen.git</connection>
-        <developerConnection>scm:git:git@github.com:swagger-api/swagger-codegen.git</developerConnection>
-        <url>https://github.com/swagger-api/swagger-codegen</url>
+        <connection>scm:git:git@github.com:maviance/smobilpay-java.git</connection>
+        <developerConnection>scm:git:git@github.com:maviance/smobilpay-java.git</developerConnection>
+        <url>https://github.com/maviance/smobilpay-java</url>
     </scm>
 
     <licenses>
@@ -26,8 +26,8 @@
         <developer>
             <name>Jephte Ndongmou</name>
             <email>jephte.ndongmou@cm.maviance.com</email>
-            <organization>Swagger</organization>
-            <organizationUrl>http://swagger.io</organizationUrl>
+            <organization>Maviance</organization>
+            <organizationUrl>https://maviance.com</organizationUrl>
         </developer>
     </developers>
 
