@@ -1,14 +1,14 @@
 
-# java-smobilpay-s3p-api-client-standard
+# java-smobilpay-s3p-api-client
 
 ----
-##Objective
+## Objective
 
 This user guide is to be used if you wish to use the API Client by importing the provided jar into your application.
 
 ## Requirements
 
-Smobilpay third party API java client library requires [Java Development Kit 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) to be installed and configured.
+Smobilpay's third party API Java client library requires [Java Development Kit 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) to be installed and configured.
 
 You can verify it by checking the java version:
 
@@ -30,30 +30,32 @@ The import process depends on the IDE you are using.
 
 Assuming that the library [installation](##installation) is done, copy the following example into your favorite IDE.
 
-This example consists to get the API version information by doing a ping to server.
+This example consists in getting the API version information by doing a ping to server.
 
 ```java
+package org.maviance.s3pjavaclient.examples;
+
 import org.maviance.s3pjavaclient.ApiClient;
 import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ChecksApi;
+import org.maviance.s3pjavaclient.api.HealthcheckApi;
 import org.maviance.s3pjavaclient.model.Ping;
 
-class CheckApiExample {
-    static final String BASE_URL = "XXXXXXXXXX";
-    static final String ACCESS_TOKEN = "XXXXXXXXXXXXXXXXXXXX";
-    static final String ACCESS_SECRET = "XXXXXXXXXXXXXXXXXXXXXXXXX";
-    static final ApiClient API_CLIENT = new ApiClient(BASE_URL, ACCESS_TOKEN, ACCESS_SECRET);
 
-    public static void main(String[] args) {
-        ChecksApi checksApi = new ChecksApi(API_CLIENT);        
-        try {
-                    Ping ping = checksApi.pingGet();
-                    System.out.println(ping);
-                } catch (ApiException e) {
-                    System.out.println("An error occurred: \n");
-                    System.out.println(e.getResponseBody());
-                }
-    }
+class Check {
+
+ public static void main(String[] args) {
+  ApiClient apiClient = new ApiClient("<BASE_URL>", "<ACCESS_TOKEN>", "<ACCESS_SECRET>");
+
+  HealthcheckApi checksApi = new HealthcheckApi(apiClient);
+
+  try {
+   Ping ping = checksApi.pingGet(AccessDetails.VERSION);
+   System.out.println(ping);
+  } catch (ApiException e) {
+   System.out.println("An error occurred: \n");
+   System.out.println(e.getResponseBody());
+  }
+ }
 }
 ```
 ### Replace the placeholder variables values
@@ -64,29 +66,22 @@ Swap the placeholder values for **BASE_URL**, **ACCESS_TOKEN**, **ACCESS_SECRET*
 
 Once the changes are done, you can compile and run the example code with your IDE. 
 
-##Run the Example Files
+## Run the Example Files
 The example files portray how the different endpoints can be used. There are two ways to run the example files:
 >1. Through the command-line.
 >2. In a project. 
 
-###A) Run Example in Command Line
+### A) Run Example in Command Line
 Let's consider that we have the version 1.1 of the api.
-As example, we can run the file **MasterData.java** which provide us information about the API such as:
+As example, we can run the file **Check.java** which provide us information about the API such as:
 - API version
 - Current user information (name, company, balance, ...)
 - List of merchants
 - List of available services.
 
-#### Step 1: Compilation
-**All the commands must be run in the folder containing the example file** <br/>
-
-In the [*AccessDetails.java*](src/main/java/org/maviance/s3pjavaclient/examples/AccessDetails.java) file provide in the example folder, enter the required Smobilpay Credentials. Create
- a folder called lib in which you will copy the S3P Jar client.<br/>
-
-
 Execute:
 ```
-javac -cp ".;lib/smobilpay-s3p-java-client-1.0.0.jar" MasterData.java
+javac -cp ".;lib/smobilpay-s3p-java-client-1.0.0.jar" Check.java
 ```
 This will generate of file **MasterData.class** with contents the byte code to run in the next step.
 

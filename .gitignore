@@ -30,4 +30,5 @@ examples/AccessDetails.java
 smobilpay-s3p-java-client.iml
 examples/examples.iml
 .scannerwork
+sonar-project.properties
 version.txt
