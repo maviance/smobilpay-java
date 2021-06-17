@@ -1,5 +1,5 @@
 
-# java-smobilpay-s3p-api-client
+# java-s3p-api-client
 
 ----
 ## Objective
@@ -8,7 +8,7 @@ This user guide is to be used if you wish to use the API Client by importing the
 
 ## Requirements
 
-Smobilpay's third party API Java client library requires [Java Development Kit 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) to be installed and configured.
+S3P, third party API Java client library requires [Java Development Kit 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) to be installed and configured.
 
 You can verify it by checking the java version:
 
@@ -23,7 +23,7 @@ javac 1.8.0_161
 
 ## Installation
 
-Install the JAR library provided by Maviance (```smobilpay-s3p-java-client.jar```) which give you access to all Java classes that help you interact with Smobilpay APIs using Java, by importing it into your project.
+Install the JAR library provided by Maviance (```s3p-java-client.jar```) which give you access to all Java classes that help you interact with S3P APIs using Java, by importing it into your project.
 The import process depends on the IDE you are using.
 
 ## Getting Started
@@ -60,7 +60,7 @@ class Check {
 ```
 ### Replace the placeholder variables values
 
-Swap the placeholder values for **BASE_URL**, **ACCESS_TOKEN**, **ACCESS_SECRET** with your personal Smobilpay credentials and Server url provided by Maviance. 
+Swap the placeholder values for **BASE_URL**, **ACCESS_TOKEN**, **ACCESS_SECRET** with your personal S3P credentials and Server url provided by Maviance. 
 
 ### Compile and Run
 
@@ -77,7 +77,7 @@ As example, we can run the file **Check.java** checks to see if the server is up
 
 Execute:
 ```
-javac -cp ".;lib/smobilpay-s3p-java-client-1.0.0.jar" Check.java
+javac -cp ".;lib/s3p-java-client-1.0.0.jar" Check.java
 ```
 This will generate a file **Check.class** which contains the byte code to run in the next step.
 
@@ -85,7 +85,7 @@ This will generate a file **Check.class** which contains the byte code to run in
 
 Execute:
 ```
-java -cp ".;lib/smobilpay-s3p-java-client-1.0.0.jar" Check
+java -cp ".;lib/s3p-java-client-1.0.0.jar" Check
 ```
 
 ###B) Run in a project
