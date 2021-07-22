@@ -99,7 +99,7 @@ public class Product {
   private String name = null;
 
   @SerializedName("amountLocalCur")
-  private Float amountLocalCur = null;
+  private Integer amountLocalCur = null;
 
   @SerializedName("description")
   private String description = null;
@@ -236,7 +236,7 @@ public class Product {
     this.name = name;
   }
 
-  public Product amountLocalCur(Float amountLocalCur) {
+  public Product amountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
     return this;
   }
@@ -246,11 +246,11 @@ public class Product {
    * @return amountLocalCur
   **/
   @ApiModelProperty(value = "Cost of product in local currency – only set for FIXED amounts.")
-  public Float getAmountLocalCur() {
+  public Integer getAmountLocalCur() {
     return amountLocalCur;
   }
 
-  public void setAmountLocalCur(Float amountLocalCur) {
+  public void setAmountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
   }
 

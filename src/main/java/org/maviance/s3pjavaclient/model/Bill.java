@@ -160,7 +160,7 @@ public class Bill {
   private String localCur = null;
 
   @SerializedName("amountLocalCur")
-  private Float amountLocalCur = null;
+  private Integer amountLocalCur = null;
 
   @SerializedName("billNumber")
   private String billNumber = null;
@@ -368,7 +368,7 @@ public class Bill {
     this.localCur = localCur;
   }
 
-  public Bill amountLocalCur(Float amountLocalCur) {
+  public Bill amountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
     return this;
   }
@@ -378,11 +378,11 @@ public class Bill {
    * @return amountLocalCur
   **/
   @ApiModelProperty(value = "Open bill amount in local currency – (only searchable bills).")
-  public Float getAmountLocalCur() {
+  public Integer getAmountLocalCur() {
     return amountLocalCur;
   }
 
-  public void setAmountLocalCur(Float amountLocalCur) {
+  public void setAmountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
   }
 

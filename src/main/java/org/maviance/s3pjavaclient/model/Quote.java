@@ -40,7 +40,7 @@ public class Quote {
   private String payItemId = null;
 
   @SerializedName("amountLocalCur")
-  private Float amountLocalCur = null;
+  private Integer amountLocalCur = null;
 
   @SerializedName("priceLocalCur")
   private Float priceLocalCur = null;
@@ -111,7 +111,7 @@ public class Quote {
     this.payItemId = payItemId;
   }
 
-  public Quote amountLocalCur(Float amountLocalCur) {
+  public Quote amountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
     return this;
   }
@@ -121,11 +121,11 @@ public class Quote {
    * @return amountLocalCur
   **/
   @ApiModelProperty(required = true, value = "Service amount in local currency")
-  public Float getAmountLocalCur() {
+  public Integer getAmountLocalCur() {
     return amountLocalCur;
   }
 
-  public void setAmountLocalCur(Float amountLocalCur) {
+  public void setAmountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
   }
 

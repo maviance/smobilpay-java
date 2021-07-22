@@ -30,12 +30,12 @@ import java.io.IOException;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.JavaClientCodegen", date = "2021-06-15T16:12:17.518+01:00")
 public class QuoteRequest {
   @SerializedName("amount")
-  private Float amount = null;
+  private Integer amount = null;
 
   @SerializedName("payItemId")
   private String payItemId = null;
 
-  public QuoteRequest amount(Float amount) {
+  public QuoteRequest amount(Integer amount) {
     this.amount = amount;
     return this;
   }
@@ -45,11 +45,11 @@ public class QuoteRequest {
    * @return amount
   **/
   @ApiModelProperty(required = true, value = "Amount to be collected during the payment (in local currency of the payment item). Depends on the payment items amountType.")
-  public Float getAmount() {
+  public Integer getAmount() {
     return amount;
   }
 
-  public void setAmount(Float amount) {
+  public void setAmount(Integer amount) {
     this.amount = amount;
   }
 

@@ -33,7 +33,7 @@ public class CollectionRequest {
   private String quoteId = null;
 
   @SerializedName("customerPhonenumber")
-  private Integer customerPhonenumber = null;
+  private String customerPhonenumber = null;
 
   @SerializedName("customerEmailaddress")
   private String customerEmailaddress = null;
@@ -71,7 +71,7 @@ public class CollectionRequest {
     this.quoteId = quoteId;
   }
 
-  public CollectionRequest customerPhonenumber(Integer customerPhonenumber) {
+  public CollectionRequest customerPhonenumber(String customerPhonenumber) {
     this.customerPhonenumber = customerPhonenumber;
     return this;
   }
@@ -81,11 +81,11 @@ public class CollectionRequest {
    * @return customerPhonenumber
   **/
   @ApiModelProperty(required = true, value = "Customer Phonenumber for regulatory compliance – international format with leading country code. E.g. “237699999999” for a fictional phone number 699999999 in Cameroon (237).")
-  public Integer getCustomerPhonenumber() {
+  public String getCustomerPhonenumber() {
     return customerPhonenumber;
   }
 
-  public void setCustomerPhonenumber(Integer customerPhonenumber) {
+  public void setCustomerPhonenumber(String customerPhonenumber) {
     this.customerPhonenumber = customerPhonenumber;
   }
 

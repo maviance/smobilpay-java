@@ -99,7 +99,7 @@ public class Topup {
   private String name = null;
 
   @SerializedName("amountLocalCur")
-  private Float amountLocalCur = null;
+  private Integer amountLocalCur = null;
 
   @SerializedName("description")
   private String description = null;
@@ -236,7 +236,7 @@ public class Topup {
     this.name = name;
   }
 
-  public Topup amountLocalCur(Float amountLocalCur) {
+  public Topup amountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
     return this;
   }
@@ -246,11 +246,11 @@ public class Topup {
    * @return amountLocalCur
   **/
   @ApiModelProperty(value = "Cost of topup package in local currency – only set for FIXED amounts.Otherwise null .")
-  public Float getAmountLocalCur() {
+  public Integer getAmountLocalCur() {
     return amountLocalCur;
   }
 
-  public void setAmountLocalCur(Float amountLocalCur) {
+  public void setAmountLocalCur(Integer amountLocalCur) {
     this.amountLocalCur = amountLocalCur;
   }
 
