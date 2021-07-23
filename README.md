@@ -731,14 +731,4 @@ This is the simplest approach for running an example file.
 
 The authentication process is handled by the library. All you have to do is provide the BASE_URL, ACCESS_TOKEN and ACCESS_SECRET as shown in the example above 
 
-## Authors
-- Valdese Kamdem.
-- Florian Njiyim Lowe
-- Akongnwi C. Devert
-
-
-
-
-
-
 
