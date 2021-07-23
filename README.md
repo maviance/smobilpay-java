@@ -336,7 +336,7 @@ public class NonSearchableBillCollectionExample {
 
         try {
         
-            // Retrieve open bills and list them out 
+            // search open bills 
         
             List<Bill> bills = initiateApi.billGet(AccessDetails.VERSION, merchantCode, serviceId, serviceNumber);
             if (bills.isEmpty()) {
@@ -391,7 +391,7 @@ import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-public class SearchableBillCollection {
+public class SearchableBillCollectionExample {
 
     // Some sample values - these are not valid identifiers
     private static String merchantCode = "ENEO";
@@ -464,7 +464,7 @@ import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-public class SubscriptionCollection {
+public class SubscriptionCollectionExample {
 
     // Some sample values - these are not valid identifiers
     // customer number - customer identifier in biller's system
@@ -487,7 +487,7 @@ public class SubscriptionCollection {
         InitiateApi initiateApi = new InitiateApi(apiClient);
 
         try {
-            // Retrieve available packages and list them out 
+            // Search subscription package 
             List<Subscription> subscriptions = initiateApi.subscriptionGet(AccessDetails.VERSION, merchantCode, String.valueOf(serviceId), serviceNumber, customerNumber);
             if (subscriptions.isEmpty()) {
             // Should have found atleast one record."
@@ -545,7 +545,7 @@ import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-public class TopupCollection {
+public class TopupCollectionExample {
     private static String separator = "  --  ";
 
     // Some sample values - these are not valid identifiers
@@ -627,7 +627,7 @@ import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-public class VoucherCollection {
+public class VoucherCollectionExample {
     private static String separator = "  --  ";
 
     private static int serviceId = 2000;
