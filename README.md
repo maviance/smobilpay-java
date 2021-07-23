@@ -87,15 +87,16 @@ The example above portrays how the different ping endpoint can be called. There 
     
     import java.util.List;
     
-    class CashInCollection {
+    class CashInCollectionExample {
         private static final String separator = "  --  ";
-    
-        // Cash In service number
-        private static final String serviceNumber = "237674827066";
-        private static final int serviceId = 3002;
+        
+        // Some sample values - these are not valid identifiers
+        // Cash In service number -> In this case a msisdn
+        private static final String serviceNumber = "2371122334455";
+        private static final int serviceId = 999999;
     
         // Customer details
-        private static final String phone = "698223844";
+        private static final String phone = "23712345678";
         private static final String email = "name@example.com";
     
         public static void main(String[] args) {
@@ -104,26 +105,35 @@ The example above portrays how the different ping endpoint can be called. There 
             MasterdataApi masterdataApi = new MasterdataApi(apiClient);
     
             try {
+            
+                // Retrieve available cashin packages and list them out 
+                
                 List<Cashin> packages = masterdataApi.cashinGet(AccessDetails.VERSION, serviceId);
                 System.out.println("==========================PACKAGES========================================");
                 packages.forEach(item -> System.out.println(item.getServiceid() + separator + item.getName()));
                 System.out.println("===========================================================================");
+                
+                // Select the first packages for sake of demonstration and echo out the details
+                
                 Cashin cashin = packages.get(0);
-    
                 System.out.println("Cash-In Service: " + cashin.getServiceid());
                 System.out.println("Cash-In Description: " + cashin.getDescription());
                 System.out.println("Cash-In Amount: " + cashin.getAmountLocalCur());
                 System.out.println("Cash-In Payment Item Id: " + cashin.getPayItemId());
     
+                // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
+                
                 QuoteRequest quote = new QuoteRequest();
                 quote.setAmount(500);
-                quote.setPayItemId(cashin.getPayItemId());
+                quote.setPayItemId(cashin.getPayItemId());                 
                 InitiateApi initiateApi = new InitiateApi(apiClient);
-                Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
+                Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);                
                 System.out.println("Quote ID: " + offer.getQuoteId());
                 System.out.println(offer);
+                
+                // Finalize by confirming the collection
+                
                 ConfirmApi confirmApi = new ConfirmApi(apiClient);
-                // Execute the collection
                 CollectionRequest collection = new CollectionRequest();
                 collection.setCustomerPhonenumber(phone);
                 collection.setCustomerEmailaddress(email);
@@ -132,7 +142,8 @@ The example above portrays how the different ping endpoint can be called. There 
                 CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
                 System.out.println("Collection Payment TX Number:" + payment.getPtn());
     
-                // Lookup record in Smobilpay by PTN
+                // Lookup record in Smobilpay by PTN to retrieve the payment status
+                
                 VerifyApi verifyApi = new VerifyApi(apiClient);
                 List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
                 if (historystds.size() != 1) {
@@ -141,6 +152,7 @@ The example above portrays how the different ping endpoint can be called. There 
                 }
                 System.out.println("History Result (Status): " + historystds.get(0).getStatus());
             } catch (ApiException e) {
+                // Add more detailed handling here 
                 System.out.println("An error occurred: \n");
                 System.out.println(e.getResponseBody());
             }
