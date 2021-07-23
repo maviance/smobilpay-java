@@ -106,20 +106,13 @@ The example above portrays how the different ping endpoint can be called. There 
     
             try {
             
-                // Retrieve available cashin packages and list them out 
+                // Retrieve available cashin packages
                 
                 List<Cashin> packages = masterdataApi.cashinGet(AccessDetails.VERSION, serviceId);
-                System.out.println("==========================PACKAGES========================================");
-                packages.forEach(item -> System.out.println(item.getServiceid() + separator + item.getName()));
-                System.out.println("===========================================================================");
                 
-                // Select the first packages for sake of demonstration and echo out the details
+                // Select the first packages for sake of demonstration
                 
                 Cashin cashin = packages.get(0);
-                System.out.println("Cash-In Service: " + cashin.getServiceid());
-                System.out.println("Cash-In Description: " + cashin.getDescription());
-                System.out.println("Cash-In Amount: " + cashin.getAmountLocalCur());
-                System.out.println("Cash-In Payment Item Id: " + cashin.getPayItemId());
     
                 // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
                 
@@ -128,8 +121,6 @@ The example above portrays how the different ping endpoint can be called. There 
                 quote.setPayItemId(cashin.getPayItemId());                 
                 InitiateApi initiateApi = new InitiateApi(apiClient);
                 Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);                
-                System.out.println("Quote ID: " + offer.getQuoteId());
-                System.out.println(offer);
                 
                 // Finalize by confirming the collection
                 
@@ -140,21 +131,17 @@ The example above portrays how the different ping endpoint can be called. There 
                 collection.setQuoteId(offer.getQuoteId());
                 collection.setServiceNumber(""+serviceNumber);
                 CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-                System.out.println("Collection Payment TX Number:" + payment.getPtn());
     
                 // Lookup record in Smobilpay by PTN to retrieve the payment status
                 
                 VerifyApi verifyApi = new VerifyApi(apiClient);
                 List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
                 if (historystds.size() != 1) {
-                    System.out.println("Should have found exactly one record.");
+                // Should have found exactly one record."
                     System.exit(0);
                 }
-                System.out.println("History Result (Status): " + historystds.get(0).getStatus());
             } catch (ApiException e) {
                 // Add more detailed handling here 
-                System.out.println("An error occurred: \n");
-                System.out.println(e.getResponseBody());
             }
     
         }
@@ -170,68 +157,66 @@ import org.maviance.s3pjavaclient.ApiClient;
 import org.maviance.s3pjavaclient.ApiException;
 import org.maviance.s3pjavaclient.api.ConfirmApi;
 import org.maviance.s3pjavaclient.api.MasterdataApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
 import org.maviance.s3pjavaclient.api.VerifyApi;
+import org.maviance.s3pjavaclient.api.InitiateApi;
 import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-class CashInCollection {
+public class CashOutCollectionExample {
     private static final String separator = "  --  ";
 
-    // Cash In service number
-    private static final String serviceNumber = "237674827066";
-    private static final int serviceId = 3002;
+    // Some sample values - these are not valid identifiers
+    // Cash Out service number -> In this case a msisdn
+    private static final String serviceNumber = "2371122334455";
+    private static final int serviceId = 969873;
 
     // Customer details
-    private static final String phone = "698223844";
+    private static final String phone = "23712345678";
     private static final String email = "name@example.com";
 
     public static void main(String[] args) {
         ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
         apiClient.setDebugging(false);
-        MasterdataApi masterdataApi = new MasterdataApi(apiClient);
+        ConfirmApi confirmApi = new ConfirmApi(apiClient);
+        InitiateApi initiateApi = new InitiateApi(apiClient);
+        MasterdataApi masterDataApi = new MasterdataApi(apiClient);
 
         try {
-            List<Cashin> packages = masterdataApi.cashinGet(AccessDetails.VERSION, serviceId);
-            System.out.println("==========================PACKAGES========================================");
-            packages.forEach(item -> System.out.println(item.getServiceid() + separator + item.getName()));
-            System.out.println("===========================================================================");
-            Cashin cashin = packages.get(0);
+        
+            // Retrieve available cash out packages
+            
+            List<Cashout> packages = masterDataApi.cashoutGet(AccessDetails.VERSION, serviceId);
+            
+            // Select the first packages for sake of demonstration
+            Cashout cashout = packages.get(0);
 
-            System.out.println("Cash-In Service: " + cashin.getServiceid());
-            System.out.println("Cash-In Description: " + cashin.getDescription());
-            System.out.println("Cash-In Amount: " + cashin.getAmountLocalCur());
-            System.out.println("Cash-In Payment Item Id: " + cashin.getPayItemId());
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
 
             QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(500);
-            quote.setPayItemId(cashin.getPayItemId());
-            InitiateApi initiateApi = new InitiateApi(apiClient);
+            quote.setAmount(2000);
+            quote.setPayItemId(cashout.getPayItemId());
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
-            System.out.println(offer);
-            ConfirmApi confirmApi = new ConfirmApi(apiClient);
-            // Execute the collection
+
+            // Finalize by confirming the collection
+            
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerPhonenumber(phone);
             collection.setCustomerEmailaddress(email);
             collection.setQuoteId(offer.getQuoteId());
             collection.setServiceNumber(""+serviceNumber);
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
 
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
+            
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+            // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+            // Add more detailed handling here 
         }
 
     }
@@ -254,16 +239,16 @@ import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-public class ProductCollection {
+public class ProductCollectionExample {
     private static String separator = "  --  ";
 
-    // Number to buy product for
-    private static String serviceNumber = "2577631317";
-    // Cash In service number
-    private static int serviceId = 20021;
+    // Some sample values - these are not valid identifiers
+    private static String serviceNumber = "011234665878";
+    // Product service number
+    private static int serviceId = 888887;
 
     // Customer details
-    private static String phone = "653754334";
+    private static String phone = "123754334";
     private static String email = "name@example.com";
 
     public static void main(String[] args) {
@@ -274,46 +259,41 @@ public class ProductCollection {
         MasterdataApi masterDataApi = new MasterdataApi(apiClient);
 
         try {
+            // Retrieve available product packages 
+
             List<Product> products = masterDataApi.productGet(AccessDetails.VERSION, serviceId);
-            System.out.println("===================================PRODUCTS===========================================");
-            products.forEach(product -> System.out.println(product.getServiceid() + separator + product.getName()));
-            System.out.println("=======================================================================================");
+            
+            // Select the first product for sake of demonstration
+            
             Product product = products.get(0);
 
-            System.out.println("Product Service: " + product.getServiceid());
-            System.out.println("Product Description: " + product.getDescription());
-            System.out.println("Product Amount: " + product.getAmountLocalCur());
-            System.out.println("Product Payment Item Id: " + product.getPayItemId());
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
 
             QuoteRequest quote = new QuoteRequest();
             quote.setAmount(product.getAmountLocalCur());
             quote.setPayItemId(product.getPayItemId());
 
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
-            System.out.println(offer);
 
-            // Execute the collection
+            // Finalize by confirming the collection
+            
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerPhonenumber(phone);
             collection.setCustomerEmailaddress(email);
             collection.setQuoteId(offer.getQuoteId());
             collection.setServiceNumber(String.valueOf(serviceNumber));
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
 
-
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
+            
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+                // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+            // add more handling
         }
     }
 }
@@ -333,11 +313,12 @@ import org.maviance.s3pjavaclient.model.*;
 
 import java.util.List;
 
-public class NonSearchableBillCollection {
+public class NonSearchableBillCollectionExample {
 
+    // Some sample values - these are not valid identifiers
     private static String merchantCode = "ENEO";
-    private static int serviceId = 1001;
-    // Cash In service number
+    private static int serviceId = 98999;
+    
     private static String serviceNumber = "";
     private static Integer amount = 100;
 
@@ -354,23 +335,25 @@ public class NonSearchableBillCollection {
         InitiateApi initiateApi = new InitiateApi(apiClient);
 
         try {
+        
+            // Retrieve open bills and list them out 
+        
             List<Bill> bills = initiateApi.billGet(AccessDetails.VERSION, merchantCode, serviceId, serviceNumber);
             if (bills.isEmpty()) {
-                System.out.println("No matching open bills found");
+            // Should have found atleast one record."
                 System.exit(0);
             }
 
-            // Take the first bill in the list and request quote
+            // Select the first bill for sake of demonstration
             Bill bill = bills.get(0);
-            System.out.println("Bill Payment Item Id: " + bill.getPayItemId());
-
+            
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
             QuoteRequest quote = new QuoteRequest();
             quote.setAmount(amount);
             quote.setPayItemId(bill.getPayItemId());
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
 
-            // Execute the collection
+            // Finalize by confirming the collection
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerPhonenumber(phone);
             collection.setCustomerEmailaddress(email);
@@ -379,19 +362,16 @@ public class NonSearchableBillCollection {
             collection.setCustomerAddress(address);
             collection.setCustomerName(name);
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
 
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+            // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+            // add more handling
         }
 
     }
@@ -413,10 +393,12 @@ import java.util.List;
 
 public class SearchableBillCollection {
 
+    // Some sample values - these are not valid identifiers
     private static String merchantCode = "ENEO";
     private static int serviceId = 10039;
-    // Cash In service number
-    private static String serviceNumber = "201761727";
+    
+    // Service number is the contract number with the merchant
+    private static String serviceNumber = "2021961727";
 
     // Customer details
     private static String phone = "698223844";
@@ -429,26 +411,24 @@ public class SearchableBillCollection {
         ConfirmApi confirmApi = new ConfirmApi(apiClient);
 
         try {
+            // Retrieve open bills and list them out 
             List<Bill> bills = initiateApi.billGet(AccessDetails.VERSION, merchantCode, serviceId, serviceNumber);
             if (bills.isEmpty()) {
-                System.out.println("No matching open bills found");
+            // Should have found atleast one record."
                 System.exit(0);
             }
-            System.out.println("================================OPEN BILLS=====================================");
-            bills.forEach(bill -> System.out.printf("%s - bill due date: %s\n",bill.getPayItemId(),bill.getBillDueDate().toString()));
-            System.out.println("===============================================================================");
+            
+            // Select the first bill for sake of demonstration
             Bill bill = bills.get(0);
-            System.out.println(bill);
-            System.out.println("Bill Payment Item Id: " + bill.getPayItemId());
+
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
 
             QuoteRequest quote = new QuoteRequest();
             quote.setAmount(bill.getAmountLocalCur());
             quote.setPayItemId(bill.getPayItemId());
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
-            System.out.println(offer);
 
-            // Execute the collection
+            // Finalize by confirming the collection
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerPhonenumber(phone);
             collection.setCustomerEmailaddress(email);
@@ -456,19 +436,16 @@ public class SearchableBillCollection {
             collection.setServiceNumber(serviceNumber);
 //            collection.setCustomerName("Lowe Florian");
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
 
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+            // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+            // add more handling
         }
 
     }
@@ -488,15 +465,19 @@ import org.maviance.s3pjavaclient.model.*;
 import java.util.List;
 
 public class SubscriptionCollection {
-    private static String merchantCode = "CMSABC";
-    private static int serviceId = 5000;
-    // Cash In service number
+
+    // Some sample values - these are not valid identifiers
+    // customer number - customer identifier in biller's system
+   
+    private static String merchantCode = "SABC";
+    private static int serviceId = 001235485;
+    // Subscription service number
     private static String serviceNumber = null;
     // Customer number
-    private static String customerNumber = "0000000102";
+    private static String customerNumber = "0000000999";
 
     // Customer details
-    private static String phone = "653754334";
+    private static String phone = "6532548545";
     private static String email = "name@example.com";
 
     public static void main(String[] args) {
@@ -506,23 +487,27 @@ public class SubscriptionCollection {
         InitiateApi initiateApi = new InitiateApi(apiClient);
 
         try {
+            // Retrieve available packages and list them out 
             List<Subscription> subscriptions = initiateApi.subscriptionGet(AccessDetails.VERSION, merchantCode, String.valueOf(serviceId), serviceNumber, customerNumber);
             if (subscriptions.isEmpty()) {
-                System.out.println("No matching subscriptions found");
+            // Should have found atleast one record."
                 System.exit(0);
             }
+            
+            // Select the first package for sake of demonstration
 
             Subscription subscription = subscriptions.get(0);
-            System.out.println("Subscription Payment Item Id: " + subscription.getPayItemId());
-            System.out.println("Subscription Payment Amount: " + subscription.getAmountLocalCur());
+
+
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
 
             QuoteRequest quote = new QuoteRequest();
             quote.setAmount(1000);
             quote.setPayItemId(subscription.getPayItemId());
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
 
-            // Execute the collection
+            // Finalize by confirming the collection
+
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerNumber(customerNumber);
             collection.setCustomerPhonenumber(phone);
@@ -530,19 +515,16 @@ public class SubscriptionCollection {
             collection.setQuoteId(offer.getQuoteId());
             collection.setServiceNumber(""+serviceNumber);
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
 
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+            // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+            // add more handling here
         }
 
     }
@@ -566,10 +548,12 @@ import java.util.List;
 public class TopupCollection {
     private static String separator = "  --  ";
 
-    private static int serviceId = 20062;
+    // Some sample values - these are not valid identifiers
 
-    // Cash In service number
-    private static String serviceNumber = "698223844";
+    private static int serviceId = 9998878;
+
+    // Top up service number
+    private static String serviceNumber = "987987987";
 
     // Customer details
     private static String phone = "698223844";
@@ -583,11 +567,12 @@ public class TopupCollection {
         InitiateApi initiateApi = new InitiateApi(apiClient);
 
         try {
+            // Retrieve available topup packages 
 
             List<Topup> topups = masterdataApi.topupGet(AccessDetails.VERSION, serviceId);
-            topups.forEach(topup -> System.out.println(topup.getServiceid() + separator + topup.getName()));
 
-            //to be updated with the particular type of topup to carry out
+            // Select the first top up package for sake of demonstration
+
             int indexOfTopup = 0;
             Topup topup = topups.get(indexOfTopup);
             if (topup.getAmountType() == Topup.AmountTypeEnum.CUSTOM) {
@@ -595,18 +580,16 @@ public class TopupCollection {
                 final int topUpAmount = 100;
                 topup.setAmountLocalCur(topUpAmount);
             }
-            System.out.println("Topup Service: " + topup.getServiceid());
-            System.out.println("Topup Description: " + topup.getDescription());
-            System.out.println("Topup Amount: " + topup.getAmountLocalCur());
-            System.out.println("Topup Payment Item Id: " + topup.getPayItemId());
+
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
 
             QuoteRequest quote = new QuoteRequest();
             quote.setAmount(topup.getAmountLocalCur());
             quote.setPayItemId(topup.getPayItemId());
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
 
-            // Execute the collection
+            // Finalize by confirming the collection
+            
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerPhonenumber(phone);
             collection.setCustomerEmailaddress(email);
@@ -614,19 +597,16 @@ public class TopupCollection {
             collection.setServiceNumber(""+serviceNumber);
             collection.setCustomerName("Lowe Florian");
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
 
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+            // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+             // add more handling here
         }
 
     }
@@ -652,10 +632,10 @@ public class VoucherCollection {
 
     private static int serviceId = 2000;
 
-    // Cash In service number
-    private static String serviceNumber = "014375112886";
+    // Voucher service number
+    private static String serviceNumber = "00000123456";
 
-    // Customer details.This refers to the information of the smobilpay account owner
+    // Customer details
     private static String phone = "653754334";
     private static String email = "name@example.com";
 
@@ -668,27 +648,24 @@ public class VoucherCollection {
         InitiateApi initiateApi = new InitiateApi(apiClient);
 
         try {
-
+            // Retrieve available voucher packages 
             List<Product> products = masterdataApi.voucherGet(AccessDetails.VERSION, serviceId);
 
-            products.forEach(product -> System.out.println(product.getServiceid() + separator + product.getName()));
+            // Select the first top up package for sake of demonstration
 
             Product voucher = products.get(0);
             //set the voucher amount.
             voucher.setAmountLocalCur(1000);
 
-            System.out.println("Voucher Service: " + voucher.getServiceid());
-            System.out.println("Voucher Description: " + voucher.getDescription());
-            System.out.println("Voucher Amount: " + voucher.getAmountLocalCur());
-            System.out.println("Voucher Payment Item Id: " + voucher.getPayItemId());
+            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
 
             QuoteRequest quote = new QuoteRequest();
             quote.setAmount(voucher.getAmountLocalCur());
             quote.setPayItemId(voucher.getPayItemId());
             Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-            System.out.println("Quote ID: " + offer.getQuoteId());
 
-            // Execute the collection
+            // Finalize by confirming the collection
+            
             CollectionRequest collection = new CollectionRequest();
             collection.setCustomerPhonenumber(phone);
             collection.setCustomerEmailaddress(email);
@@ -696,20 +673,16 @@ public class VoucherCollection {
             collection.setServiceNumber(""+serviceNumber);
 
             CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-            System.out.println("Collection Payment TX Number:" + payment.getPtn());
-            System.out.println("Voucher PIN: " + payment.getPin());
 
-            // Lookup record in Smobilpay by PTN
+            // Lookup record in Smobilpay by PTN to retrieve the payment status
             VerifyApi verifyApi = new VerifyApi(apiClient);
             List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
             if (historystds.size() != 1) {
-                System.out.println("Should have found exactly one record.");
+            // Should have found exactly one record."
                 System.exit(0);
             }
-            System.out.println("History Result (Status): " + historystds.get(0).getStatus());
         } catch (ApiException e) {
-            System.out.println("An error occurred: \n");
-            System.out.println(e.getResponseBody());
+            // add more handling
         }
 
     }
