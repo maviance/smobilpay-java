@@ -1,11 +1,10 @@
 # ConfirmApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**collectstdPost**](ConfirmApi.md#collectstdPost) | **POST** /collectstd | Execute payment collection
-
 
 <a name="collectstdPost"></a>
 # **collectstdPost**
