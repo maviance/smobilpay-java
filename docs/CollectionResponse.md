@@ -1,4 +1,3 @@
-
 # CollectionResponse
 
 ## Properties
@@ -19,7 +18,6 @@ Name | Type | Description | Notes
 **payItemId** | **String** | Unique  Payment Item ID for payment item identification |  [optional]
 **payItemDescr** | **String** | Contains optional description about payment details (e.g. merchant provided bill types) |  [optional]
 
-
 <a name="StatusEnum"></a>
 ## Enum: StatusEnum
 Name | Value
@@ -29,6 +27,3 @@ PENDING | &quot;PENDING&quot;
 ERRORED | &quot;ERRORED&quot;
 UNDERINVESTIGATION | &quot;UNDERINVESTIGATION&quot;
 SUCCESS | &quot;SUCCESS&quot;
-
-
-

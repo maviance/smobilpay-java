@@ -32,3 +32,5 @@ examples
 .scannerwork
 sonar-project.properties
 version.txt
+
+.vscode/

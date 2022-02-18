@@ -1,4 +1,3 @@
-
 # Quote
 
 ## Properties
@@ -13,6 +12,3 @@ Name | Type | Description | Notes
 **localCur** | **String** | Local currency of service. (Format: ISO 4217) | 
 **systemCur** | **String** | Currency of billing by  system. (Format: ISO 4217) | 
 **promotion** | **String** | Optional comma seperated list of current or upcoming promotions offered by the quoted service |  [optional]
-
-
-
