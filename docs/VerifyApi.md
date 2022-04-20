@@ -1,12 +1,11 @@
 # VerifyApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**historystdGet**](VerifyApi.md#historystdGet) | **GET** /historystd | Retrieve list of historic payment collection.
 [**verifytxGet**](VerifyApi.md#verifytxGet) | **GET** /verifytx | Get the current payment collection status
-
 
 <a name="historystdGet"></a>
 # **historystdGet**
@@ -25,8 +24,8 @@ This endpoint allows the search for historic payment collection records by time 
 
 VerifyApi apiInstance = new VerifyApi();
 String xApiVersion = "3.0.0"; // String | api version info
-LocalDate timestampFrom = LocalDate.now(); // LocalDate | Start date of transactions in result set (ISO 8601)
-LocalDate timestampTo = LocalDate.now(); // LocalDate | End date of transactions in result set (ISO 8601)
+LocalDate timestampFrom = new LocalDate(); // LocalDate | Start date of transactions in result set (ISO 8601)
+LocalDate timestampTo = new LocalDate(); // LocalDate | End date of transactions in result set (ISO 8601)
 try {
     List<PaymentStatus> result = apiInstance.historystdGet(xApiVersion, timestampFrom, timestampTo);
     System.out.println(result);
@@ -54,7 +53,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="verifytxGet"></a>
@@ -103,6 +102,6 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 

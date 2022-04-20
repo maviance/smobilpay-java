@@ -1,11 +1,10 @@
 # AccountApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**accountGet**](AccountApi.md#accountGet) | **GET** /account | Retrieve account information and remaining account balance
-
 
 <a name="accountGet"></a>
 # **accountGet**
@@ -49,6 +48,6 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 

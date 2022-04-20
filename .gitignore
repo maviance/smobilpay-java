@@ -19,16 +19,3 @@ hs_err_pid*
 target
 .gradle
 build
-
-# IDE
-.idea/
-examples/.idea
-examples/src
-
-examples/AccessDetails.java
-
-smobilpay-s3p-java-client.iml
-examples
-.scannerwork
-sonar-project.properties
-version.txt

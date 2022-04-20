@@ -42,6 +42,7 @@ public class HMACSignature {
      * @return  the signature result
      */
     public String generate(String accessSecret) {
+        System.out.println(getBaseString());
         return calculateHMACInBase64(getBaseString(), accessSecret);
     }
 
@@ -100,7 +101,7 @@ public class HMACSignature {
      */
     private static String percentageEncode(String s) {
         try {
-            return URLEncoder.encode(s, "UTF-8");
+            return URLEncoder.encode(s, "UTF-8").replace("+", "%20");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

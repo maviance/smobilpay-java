@@ -1,6 +1,6 @@
 # MasterdataApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
@@ -12,7 +12,6 @@ Method | HTTP request | Description
 [**serviceIdGet**](MasterdataApi.md#serviceIdGet) | **GET** /service/{id} | Retrieve single service
 [**topupGet**](MasterdataApi.md#topupGet) | **GET** /topup | Retrieve available topup packages
 [**voucherGet**](MasterdataApi.md#voucherGet) | **GET** /voucher | Retrieve list of available vouchers to purchase
-
 
 <a name="cashinGet"></a>
 # **cashinGet**
@@ -58,7 +57,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="cashoutGet"></a>
@@ -105,7 +104,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="merchantGet"></a>
@@ -150,7 +149,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="productGet"></a>
@@ -197,7 +196,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="serviceGet"></a>
@@ -242,7 +241,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="serviceIdGet"></a>
@@ -289,7 +288,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="topupGet"></a>
@@ -336,7 +335,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="voucherGet"></a>
@@ -383,6 +382,6 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 

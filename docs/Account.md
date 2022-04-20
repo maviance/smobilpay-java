@@ -1,4 +1,3 @@
-
 # Account
 
 ## Properties
@@ -16,6 +15,3 @@ Name | Type | Description | Notes
 **companyPhonenumber** | **String** | Collector company phonenumber | 
 **limitMax** | **Float** | Daily collection limit – The maximum amount that can be collected per day by this account. | 
 **limitRemaining** | **Float** | Collection limit remaining for the day (reset at 00:00 UTC). | 
-
-
-
