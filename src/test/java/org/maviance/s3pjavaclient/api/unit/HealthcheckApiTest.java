@@ -11,9 +11,10 @@
  */
 
 
-package org.maviance.s3pjavaclient.api;
+package org.maviance.s3pjavaclient.api.unit;
 
 import org.maviance.s3pjavaclient.ApiException;
+import org.maviance.s3pjavaclient.api.HealthcheckApi;
 import org.maviance.s3pjavaclient.model.Error;
 import org.maviance.s3pjavaclient.model.Ping;
 import org.junit.Test;

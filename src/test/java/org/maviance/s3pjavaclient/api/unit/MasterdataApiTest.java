@@ -11,9 +11,10 @@
  */
 
 
-package org.maviance.s3pjavaclient.api;
+package org.maviance.s3pjavaclient.api.unit;
 
 import org.maviance.s3pjavaclient.ApiException;
+import org.maviance.s3pjavaclient.api.MasterdataApi;
 import org.maviance.s3pjavaclient.model.Cashin;
 import org.maviance.s3pjavaclient.model.Cashout;
 import org.maviance.s3pjavaclient.model.Error;

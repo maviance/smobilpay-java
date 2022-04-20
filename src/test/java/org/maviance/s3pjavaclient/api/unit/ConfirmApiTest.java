@@ -11,9 +11,10 @@
  */
 
 
-package org.maviance.s3pjavaclient.api;
+package org.maviance.s3pjavaclient.api.unit;
 
 import org.maviance.s3pjavaclient.ApiException;
+import org.maviance.s3pjavaclient.api.ConfirmApi;
 import org.maviance.s3pjavaclient.model.CollectionRequest;
 import org.maviance.s3pjavaclient.model.CollectionResponse;
 import org.maviance.s3pjavaclient.model.Error;

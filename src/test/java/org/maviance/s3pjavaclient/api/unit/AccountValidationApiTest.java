@@ -11,9 +11,10 @@
  */
 
 
-package org.maviance.s3pjavaclient.api;
+package org.maviance.s3pjavaclient.api.unit;
 
 import org.maviance.s3pjavaclient.ApiException;
+import org.maviance.s3pjavaclient.api.AccountValidationApi;
 import org.maviance.s3pjavaclient.model.Error;
 import org.junit.Test;
 import org.junit.Ignore;
