@@ -12,7 +12,10 @@
 
 package org.maviance.s3pjavaclient.api.functional;
 
+import org.junit.Before;
+import org.maviance.s3pjavaclient.ApiClient;
 import org.maviance.s3pjavaclient.ApiException;
+import org.maviance.s3pjavaclient.api.AccountApi;
 import org.maviance.s3pjavaclient.api.MasterdataApi;
 import org.maviance.s3pjavaclient.model.Cashin;
 import org.maviance.s3pjavaclient.model.Cashout;
@@ -32,11 +35,20 @@ import java.util.Map;
 /**
  * API tests for MasterdataApi
  */
-@Ignore
 public class MasterdataApiTest {
 
-    private final MasterdataApi api = new MasterdataApi();
+    private MasterdataApi api;
 
+    @Before
+    public void setup() {
+        // staging credentials
+        ApiClient apiClient = new ApiClient(
+                "https://s3p.smobilpay.staging.maviance.info/v2",
+                "10AD3F95-9156-A86C-A1F0-733231FF5993",
+                "3AF50207-CCEC-8959-6934-A29D1DD78298"
+        );
+        api = new MasterdataApi(apiClient);
+    }
     /**
      * Retrieve available cashin packages
      *
@@ -63,11 +75,14 @@ public class MasterdataApiTest {
      */
     @Test
     public void cashoutGetTest() throws ApiException {
-        String xApiVersion = null;
-        Integer serviceid = null;
-        List<Cashout> response = api.cashoutGet(xApiVersion, serviceid);
-
-        // TODO: test validations
+        String xApiVersion = "1.0.0";
+        Integer serviceid = 50053;
+        try{
+            List<Cashout> response = api.cashoutGet(xApiVersion, serviceid);
+        }
+        catch(ApiException e) {
+            System.out.println(e.getResponseBody());
+        }
     }
     /**
      * Retrieve list of merchants supported by the system.
