@@ -31,11 +31,21 @@ public class AccountApiTest {
 
     @Before
     public void setup() {
+
+        // Dev credentials
         ApiClient apiClient = new ApiClient(
-            "http://localhost",
-            "",
-            ""
+            "https://s3p.smobilpay.acceptance.maviance.info/v2",
+            "04B7FB64-4B49-485B-C2EF-9F8C4E343743",
+            "BAF71958-9E4C-8471-A95B-5E62F0AF93C9"
         );
+
+        // staging credentials
+        /*ApiClient apiClient = new ApiClient(
+            "https://s3p.smobilpay.staging.maviance.info/v2",
+            "10AD3F95-9156-A86C-A1F0-733231FF5993",
+            "3AF50207-CCEC-8959-6934-A29D1DD78298"
+        );*/
+
         api = new AccountApi(apiClient);
     }
 
@@ -54,12 +64,11 @@ public class AccountApiTest {
      * @throws ApiException if the Api call fails
      */
 
-    @Test
+    @Test(expected = ApiException.class)
     public void accountGetTest() throws ApiException {
         String xApiVersion = "1.0.0";
-
         Account response = api.accountGet(xApiVersion);
-
+        System.out.println(response);
         Assert.assertNotNull("Account response null", response);
         // Add all the assertions related to the expected account
     }
