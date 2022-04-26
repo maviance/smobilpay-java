@@ -13,7 +13,7 @@
 package org.maviance.s3pjavaclient.model;
 
 import java.util.Objects;
-import java.util.Arrays;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
@@ -23,7 +23,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.maviance.s3pjavaclient.model.I18nText;
+
 /**
  * Service
  */
@@ -144,16 +144,16 @@ public class Service {
   private StatusEnum status = null;
 
   @SerializedName("isReqCustomerName")
-  private Boolean isReqCustomerName = null;
+  private Integer isReqCustomerName = null;
 
   @SerializedName("isReqCustomerAddress")
-  private Boolean isReqCustomerAddress = null;
+  private Integer isReqCustomerAddress = null;
 
   @SerializedName("isReqCustomerNumber")
-  private Boolean isReqCustomerNumber = null;
+  private Integer isReqCustomerNumber = null;
 
   @SerializedName("isReqServiceNumber")
-  private Boolean isReqServiceNumber = null;
+  private Integer isReqServiceNumber = null;
 
   @SerializedName("labelCustomerNumber")
   private List<I18nText> labelCustomerNumber = null;
@@ -335,7 +335,7 @@ public class Service {
     this.status = status;
   }
 
-  public Service isReqCustomerName(Boolean isReqCustomerName) {
+  public Service isReqCustomerName(Integer isReqCustomerName) {
     this.isReqCustomerName = isReqCustomerName;
     return this;
   }
@@ -345,15 +345,15 @@ public class Service {
    * @return isReqCustomerName
   **/
   @Schema(required = true, description = "If set to true (1), the customers full name needs to be provided in the payment collection request.")
-  public Boolean isIsReqCustomerName() {
+  public Integer isIsReqCustomerName() {
     return isReqCustomerName;
   }
 
-  public void setIsReqCustomerName(Boolean isReqCustomerName) {
+  public void setIsReqCustomerName(Integer isReqCustomerName) {
     this.isReqCustomerName = isReqCustomerName;
   }
 
-  public Service isReqCustomerAddress(Boolean isReqCustomerAddress) {
+  public Service isReqCustomerAddress(Integer isReqCustomerAddress) {
     this.isReqCustomerAddress = isReqCustomerAddress;
     return this;
   }
@@ -363,15 +363,15 @@ public class Service {
    * @return isReqCustomerAddress
   **/
   @Schema(required = true, description = "If set to true (1), the customers address needs to be provided in the payment collection request.")
-  public Boolean isIsReqCustomerAddress() {
+  public Integer isIsReqCustomerAddress() {
     return isReqCustomerAddress;
   }
 
-  public void setIsReqCustomerAddress(Boolean isReqCustomerAddress) {
+  public void setIsReqCustomerAddress(Integer isReqCustomerAddress) {
     this.isReqCustomerAddress = isReqCustomerAddress;
   }
 
-  public Service isReqCustomerNumber(Boolean isReqCustomerNumber) {
+  public Service isReqCustomerNumber(Integer isReqCustomerNumber) {
     this.isReqCustomerNumber = isReqCustomerNumber;
     return this;
   }
@@ -381,15 +381,15 @@ public class Service {
    * @return isReqCustomerNumber
   **/
   @Schema(required = true, description = "If set to true (1), a customer number needs to be provided in the payment collection request. Customer number meaning is different for each service.")
-  public Boolean isIsReqCustomerNumber() {
+  public Integer isIsReqCustomerNumber() {
     return isReqCustomerNumber;
   }
 
-  public void setIsReqCustomerNumber(Boolean isReqCustomerNumber) {
+  public void setIsReqCustomerNumber(Integer isReqCustomerNumber) {
     this.isReqCustomerNumber = isReqCustomerNumber;
   }
 
-  public Service isReqServiceNumber(Boolean isReqServiceNumber) {
+  public Service isReqServiceNumber(Integer isReqServiceNumber) {
     this.isReqServiceNumber = isReqServiceNumber;
     return this;
   }
@@ -399,11 +399,11 @@ public class Service {
    * @return isReqServiceNumber
   **/
   @Schema(required = true, description = "If set to true (1), a service number needs to be provided in the payment collection request. Service number meaning is different for each service.")
-  public Boolean isIsReqServiceNumber() {
+  public Integer isIsReqServiceNumber() {
     return isReqServiceNumber;
   }
 
-  public void setIsReqServiceNumber(Boolean isReqServiceNumber) {
+  public void setIsReqServiceNumber(Integer isReqServiceNumber) {
     this.isReqServiceNumber = isReqServiceNumber;
   }
 

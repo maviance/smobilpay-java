@@ -77,7 +77,7 @@ public class MasterdataApiTest {
     public void cashoutGetTest() throws ApiException {
         String xApiVersion = "1.0.0";
         Integer serviceid = 50053;
-        try{
+        try {
             List<Cashout> response = api.cashoutGet(xApiVersion, serviceid);
         }
         catch(ApiException e) {
@@ -125,10 +125,14 @@ public class MasterdataApiTest {
      */
     @Test
     public void serviceGetTest() throws ApiException {
-        String xApiVersion = null;
-        List<Service> response = api.serviceGet(xApiVersion);
-
-        // TODO: test validations
+        String xApiVersion = "1.0.0";
+        try {
+            List<Service> response = api.serviceGet(xApiVersion);
+            System.out.println(response);
+        }
+        catch(ApiException e) {
+            System.out.println(e.getResponseBody());
+        }
     }
     /**
      * Retrieve single service
