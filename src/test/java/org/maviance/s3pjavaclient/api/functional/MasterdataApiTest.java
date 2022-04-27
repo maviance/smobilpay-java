@@ -12,6 +12,7 @@
 
 package org.maviance.s3pjavaclient.api.functional;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.maviance.s3pjavaclient.ApiClient;
 import org.maviance.s3pjavaclient.ApiException;
@@ -77,12 +78,8 @@ public class MasterdataApiTest {
     public void cashoutGetTest() throws ApiException {
         String xApiVersion = "1.0.0";
         Integer serviceid = 50053;
-        try {
-            List<Cashout> response = api.cashoutGet(xApiVersion, serviceid);
-        }
-        catch(ApiException e) {
-            System.out.println(e.getResponseBody());
-        }
+        List<Cashout> response = api.cashoutGet(xApiVersion, serviceid);
+        Assert.assertNotNull("Cashout response null", response);
     }
     /**
      * Retrieve list of merchants supported by the system.
@@ -126,13 +123,8 @@ public class MasterdataApiTest {
     @Test
     public void serviceGetTest() throws ApiException {
         String xApiVersion = "1.0.0";
-        try {
-            List<Service> response = api.serviceGet(xApiVersion);
-            System.out.println(response);
-        }
-        catch(ApiException e) {
-            System.out.println(e.getResponseBody());
-        }
+        List<Service> response = api.serviceGet(xApiVersion);
+        Assert.assertNotNull("Service response null", response);
     }
     /**
      * Retrieve single service
