@@ -1,4 +1,3 @@
-
 # Ping
 
 ## Properties
@@ -8,6 +7,3 @@ Name | Type | Description | Notes
 **version** | **String** | S3P API version | 
 **nonce** | **String** | Nonce used in this request | 
 **key** | **String** | Public token of the user used to send the request | 
-
-
-

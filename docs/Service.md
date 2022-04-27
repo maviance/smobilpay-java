@@ -1,4 +1,3 @@
-
 # Service
 
 ## Properties
@@ -22,7 +21,7 @@ Name | Type | Description | Notes
 **isVerifiable** | **Boolean** | If set to true (1), then the service number provided for this service can be verified before making a payment request | 
 **validationMask** | **String** | Optional mask for the service number entered during a payment for client side validations. All service numbers must comply to the mask in order to pass. The mask is a PCRE regular expression |  [optional]
 **hint** | [**List&lt;I18nText&gt;**](I18nText.md) | Translation texts for the hint notes to be displayed to the customer for this service. |  [optional]
-
+**denomination** | **Integer** | Service payment denomination. The payment amount must be a multiple of the denomination value. Example:  |Denomination|Amount|Valid| |-----|-----|-------| |1|100|true| |5|100|true| |200|100|false| |50|60|false|  |  [optional]
 
 <a name="TypeEnum"></a>
 ## Enum: TypeEnum
@@ -37,13 +36,9 @@ CASHIN | &quot;CASHIN&quot;
 CASHOUT | &quot;CASHOUT&quot;
 VOUCHER | &quot;VOUCHER&quot;
 
-
 <a name="StatusEnum"></a>
 ## Enum: StatusEnum
 Name | Value
 ---- | -----
 ACTIVE | &quot;Active&quot;
 INACTIVE | &quot;Inactive&quot;
-
-
-

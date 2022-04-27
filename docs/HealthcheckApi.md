@@ -1,11 +1,10 @@
 # HealthcheckApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**pingGet**](HealthcheckApi.md#pingGet) | **GET** /ping | Check on the availability of the api
-
 
 <a name="pingGet"></a>
 # **pingGet**
@@ -49,6 +48,6 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 

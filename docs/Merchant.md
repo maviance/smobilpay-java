@@ -1,4 +1,3 @@
-
 # Merchant
 
 ## Properties
@@ -13,13 +12,9 @@ Name | Type | Description | Notes
 **logo** | **String** | Points to a URL with the logo of the merchant if available. |  [optional]
 **logoHash** | **String** | MD5 Hash of the logo provided via URL – if available. This field stores the hash of the logo. If the logo is updated the hash will change. |  [optional]
 
-
 <a name="StatusEnum"></a>
 ## Enum: StatusEnum
 Name | Value
 ---- | -----
 ACTIVE | &quot;Active&quot;
 INACTIVE | &quot;Inactive&quot;
-
-
-

@@ -11,9 +11,10 @@
  */
 
 
-package org.maviance.s3pjavaclient.api;
+package org.maviance.s3pjavaclient.api.unit;
 
 import org.maviance.s3pjavaclient.ApiException;
+import org.maviance.s3pjavaclient.api.VerifyApi;
 import org.maviance.s3pjavaclient.model.Error;
 import org.threeten.bp.LocalDate;
 import org.maviance.s3pjavaclient.model.PaymentStatus;

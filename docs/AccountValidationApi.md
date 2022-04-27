@@ -1,11 +1,10 @@
 # AccountValidationApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**verifyGet**](AccountValidationApi.md#verifyGet) | **GET** /verify | Verify service number
-
 
 <a name="verifyGet"></a>
 # **verifyGet**
@@ -55,6 +54,6 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 

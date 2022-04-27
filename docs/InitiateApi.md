@@ -1,13 +1,12 @@
 # InitiateApi
 
-All URIs are relative to *https://localhost/v2*
+All URIs are relative to */v2*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**billGet**](InitiateApi.md#billGet) | **GET** /bill | Get bill payment handler
 [**quotestdPost**](InitiateApi.md#quotestdPost) | **POST** /quotestd | Request quote with price details about the payment
 [**subscriptionGet**](InitiateApi.md#subscriptionGet) | **GET** /subscription | Get subscription payment handler
-
 
 <a name="billGet"></a>
 # **billGet**
@@ -57,7 +56,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 <a name="quotestdPost"></a>
@@ -157,6 +156,6 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
