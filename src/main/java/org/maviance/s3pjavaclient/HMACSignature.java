@@ -36,6 +36,15 @@ public class HMACSignature {
     }
 
     /**
+     * Generate HMAC-SHA1 signature for an HTTP request.
+     * Intended for Kotlin/Java interop and one-off use.
+     */
+    public static String generateSignature(String method, String url, List<Pair> params, String accessSecret) {
+        HMACSignature signature = new HMACSignature(method, url, params);
+        return signature.generate(accessSecret);
+    }
+
+    /**
      * This method generates the signature based on given parameters.
      *
      * @param accessSecret  access secret used to encrypt the information
