@@ -1,719 +1,312 @@
+# s3p-java-client
 
-# java-s3p-api-client
+Java client library for the **Smobilpay S3P partner API** (v3.2.0).
 
-----
-## Objective
+This is the curated, partner-facing client. It covers every endpoint a
+partner integrator needs to integrate payment collections, payouts,
+value-added services, and account/service discovery — and nothing else.
 
-This user guide is to be used if you wish to use the API Client by importing the provided jar into your application.
+## What this client does
+
+- **Payment collections.** Take payment from a customer's mobile wallet
+  via a quote-then-confirm flow. Works for collections, bill payment,
+  top-up, voucher purchase, product purchase, and subscription top-up.
+- **Disbursements.** Send funds out to a recipient's mobile wallet.
+- **Account and service discovery.** Retrieve the static catalog of
+  merchants, services, products, and payment items needed to drive a
+  payment UI.
+- **Status verification.** Look up the live status of a previously
+  issued transaction by `ptn` or by your own custom `trid`, and search
+  historical activity by date range.
 
 ## Requirements
 
-S3P, third party API Java client library requires [Java Development Kit 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) to be installed and configured.
+- **Java 17 or newer** at runtime and at build time.
+- Network access to the base URL issued by Maviance support.
+- An OAuth 2.0 credential pair (`publicKey` / `secretKey`) issued during
+  partner onboarding.
 
-You can verify it by checking the java version:
-
-```
-javac -version
-```
-You should see something similar to this output depending on your Java build version
-
-```
-javac 1.8.0_161
-```
+This client uses the JDK's built-in `java.net.http.HttpClient`. The only
+third-party dependencies are Jackson Databind (for JSON) and SLF4J (for
+logging facade). No HTTP client conflicts with Spring Boot, Quarkus,
+Micronaut, or stand-alone Java applications.
 
 ## Installation
 
-Install the JAR library provided by Maviance (```s3p-java-client.jar```) which give you access to all Java classes that help you interact with S3P APIs using Java, by importing it into your project.
-The import process depends on the IDE you are using.
+The library is published as `org.maviance:s3p-java-client:3.2.0`.
 
-## Getting Started
+### Gradle (Groovy DSL)
 
-Assuming that the library [installation](##installation) is done, copy the following example into your favorite IDE.
-Create a file called `Check.java` copy the content below into this file.
-This example consists in getting the API version information by doing a ping to server.
+```groovy
+dependencies {
+    implementation 'org.maviance:s3p-java-client:3.2.0'
+}
+```
+
+### Gradle (Kotlin DSL)
+
+```kotlin
+dependencies {
+    implementation("org.maviance:s3p-java-client:3.2.0")
+}
+```
+
+### Maven
+
+```xml
+<dependency>
+    <groupId>org.maviance</groupId>
+    <artifactId>s3p-java-client</artifactId>
+    <version>3.2.0</version>
+</dependency>
+```
+
+## Quick start
+
+The library exposes a single `S3pClient` facade. Construct it once per
+application with your partner credentials; it lazily mints and caches
+the OAuth 2.0 bearer token for the lifetime of the JVM.
 
 ```java
-package org.maviance.s3pjavaclient.examples;
+import org.maviance.s3p.S3pClient;
+import org.maviance.s3p.S3pConfig;
+import org.maviance.s3p.model.Ping;
 
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.HealthcheckApi;
-import org.maviance.s3pjavaclient.model.Ping;
+S3pConfig config = S3pConfig.builder()
+        .baseUrl("https://api.example.invalid")           // issued during onboarding
+        .credentials(
+                System.getenv("S3P_PUBLIC_KEY"),
+                System.getenv("S3P_SECRET_KEY"))
+        .build();
 
-
-class Check {
-
- public static void main(String[] args) {
-  ApiClient apiClient = new ApiClient("<BASE_URL>", "<ACCESS_TOKEN>", "<ACCESS_SECRET>");
-
-  HealthcheckApi checksApi = new HealthcheckApi(apiClient);
-
-  try {
-   Ping ping = checksApi.pingGet(AccessDetails.VERSION);
-   System.out.println(ping);
-  } catch (ApiException e) {
-   System.out.println("An error occurred: \n");
-   System.out.println(e.getResponseBody());
-  }
- }
+try (S3pClient client = S3pClient.create(config)) {
+    Ping pong = client.verify().ping();
+    System.out.println("Server time: " + pong.time());
+    System.out.println("Server version: " + pong.version());
 }
 ```
-### Replace the placeholder variables values
 
-Swap the placeholder values for **BASE_URL**, **ACCESS_TOKEN**, **ACCESS_SECRET** with your personal S3P credentials and Server url provided by Maviance. 
+## Authentication
 
-### Compile and Run
+The S3P API uses **OAuth 2.0 `client_credentials`** exclusively. HMAC
+signing (the legacy `s3pAuth` scheme) is **not** supported.
 
-Once the changes are done, you can compile and run the example code with your IDE. 
+The client handles token issuance for you:
 
-## Run the Example
-The example above portrays how the different ping endpoint can be called. There are two ways to run the example file:
->1. Through the command-line.
->2. In a project. 
+1. On the first authenticated request, the client POSTs
+   `Basic base64(publicKey:secretKey)` to `{baseUrl}/oauth/token`
+   with `grant_type=client_credentials`.
+2. The returned JWT is cached in memory and attached as
+   `Authorization: Bearer <jwt>` on every subsequent request.
+3. The token is reused until it is within `tokenRefreshSkew` seconds of
+   expiry (default: 30s); then a fresh one is minted automatically.
 
-## Example per Service Type
+To force a refresh (e.g. after a 401), call `client.tokens().refresh()`.
 
-### Cashin
-```java
-    package org.maviance.s3pjavaclient.examples;
-    
-    import org.maviance.s3pjavaclient.ApiClient;
-    import org.maviance.s3pjavaclient.ApiException;
-    import org.maviance.s3pjavaclient.api.ConfirmApi;
-    import org.maviance.s3pjavaclient.api.MasterdataApi;
-    import org.maviance.s3pjavaclient.api.InitiateApi;
-    import org.maviance.s3pjavaclient.api.VerifyApi;
-    import org.maviance.s3pjavaclient.model.*;
-    
-    import java.util.List;
-    
-    class CashInCollectionExample {
-        private static final String separator = "  --  ";
-        
-        // Some sample values - these are not valid identifiers
-        // Cash In service number -> In this case a msisdn
-        private static final String serviceNumber = "2371122334455";
-        private static final int serviceId = 999999;
-    
-        // Customer details
-        private static final String phone = "23712345678";
-        private static final String email = "name@example.com";
-    
-        public static void main(String[] args) {
-            ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-            apiClient.setDebugging(false);
-            MasterdataApi masterdataApi = new MasterdataApi(apiClient);
-    
-            try {
-            
-                // Retrieve available cashin packages
-                
-                List<Cashin> packages = masterdataApi.cashinGet(AccessDetails.VERSION, serviceId);
-                
-                // Select the first packages for sake of demonstration
-                
-                Cashin cashin = packages.get(0);
-    
-                // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-                
-                QuoteRequest quote = new QuoteRequest();
-                quote.setAmount(500);
-                quote.setPayItemId(cashin.getPayItemId());                 
-                InitiateApi initiateApi = new InitiateApi(apiClient);
-                Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);                
-                
-                // Finalize by confirming the collection
-                
-                ConfirmApi confirmApi = new ConfirmApi(apiClient);
-                CollectionRequest collection = new CollectionRequest();
-                collection.setCustomerPhonenumber(phone);
-                collection.setCustomerEmailaddress(email);
-                collection.setQuoteId(offer.getQuoteId());
-                collection.setServiceNumber(""+serviceNumber);
-                CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-    
-                // Lookup record in Smobilpay by PTN to retrieve the payment status
-                
-                VerifyApi verifyApi = new VerifyApi(apiClient);
-                List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-                if (historystds.size() != 1) {
-                // Should have found exactly one record."
-                    System.exit(0);
-                }
-            } catch (ApiException e) {
-                // Add more detailed handling here 
-            }
-    
-        }
-    }
-```
+## Conventions
 
-### Cashout
+- All requests and responses are **JSON**.
+- **Monetary amounts** on `QuoteRequest.amount` are integers in the local
+  currency of the payment item (no decimals). Other amount fields on
+  responses are floats per spec.
+- **Currencies** are ISO 4217 codes (e.g. `XAF`, `EUR`).
+- **Countries** are ISO 3166-1 alpha-3 codes (e.g. `CMR`).
+- **Errors** raised by the API throw `S3pApiException`. Match on
+  `error().get().respCode()` for programmatic handling — that is the
+  canonical machine identifier per the partner spec.
+- The `x-api-version: 3.0.0` header is attached on every secured
+  request. Override via `S3pConfig.builder().apiVersion(...)` if you
+  need a different protocol shape.
+
+## End-to-end example — cash-in collection
 
 ```java
-package org.maviance.s3pjavaclient.examples;
-
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.MasterdataApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.model.*;
+import org.maviance.s3p.S3pClient;
+import org.maviance.s3p.S3pConfig;
+import org.maviance.s3p.model.*;
 
 import java.util.List;
 
-public class CashOutCollectionExample {
-    private static final String separator = "  --  ";
+S3pConfig config = S3pConfig.builder()
+        .baseUrl("https://api.example.invalid")
+        .credentials(publicKey, secretKey)
+        .build();
 
-    // Some sample values - these are not valid identifiers
-    // Cash Out service number -> In this case a msisdn
-    private static final String serviceNumber = "2371122334455";
-    private static final int serviceId = 969873;
+try (S3pClient client = S3pClient.create(config)) {
 
-    // Customer details
-    private static final String phone = "23712345678";
-    private static final String email = "name@example.com";
+    // 1. Discover the cash-in items available for service 999999
+    List<Cashin> cashins = client.masterdata().cashins(999999);
+    Cashin cashin = cashins.get(0);
 
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(false);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-        MasterdataApi masterDataApi = new MasterdataApi(apiClient);
+    // 2. Request a quote (amounts are integers in local currency)
+    QuoteResponse quote = client.initiate().quote(
+            new QuoteRequest(500, cashin.payItemId()));
 
-        try {
-        
-            // Retrieve available cash out packages
-            
-            List<Cashout> packages = masterDataApi.cashoutGet(AccessDetails.VERSION, serviceId);
-            
-            // Select the first packages for sake of demonstration
-            Cashout cashout = packages.get(0);
+    // 3. Confirm the collection
+    CollectionRequest request = CollectionRequest.builder(
+                    quote.quoteId(),
+                    "237699999999",         // customer phone (E.164, no leading +)
+                    "customer@example.com")  // customer email
+            .serviceNumber("2371122334455")  // required when service.isReqServiceNumber()
+            .trid("ORDER-2026-05-02-0001")   // optional caller-managed reference
+            .tag("retail-front-desk")        // optional reporting tag (max 50 chars)
+            .build();
 
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
+    CollectionResponse response = client.confirm().collect(request);
+    System.out.println("PTN: " + response.ptn());
+    System.out.println("Status: " + response.status()); // PENDING on x-api-version 3.0.0
 
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(2000);
-            quote.setPayItemId(cashout.getPayItemId());
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-            
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(""+serviceNumber);
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-            // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-            // Add more detailed handling here 
-        }
-
-    }
+    // 4. Poll for final status by PTN
+    List<PaymentStatus> statuses =
+            client.verify().verifyTransaction(response.ptn(), null);
+    System.out.println("Final status: " + statuses.get(0).status());
 }
-
 ```
 
-### Product
+## End-to-end example — bill payment
 
 ```java
-package org.maviance.s3pjavaclient.examples;
+List<Bill> bills = client.initiate().bills("CDE", 4321, "METER-001");
+Bill bill = bills.get(0);
 
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.MasterdataApi;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.model.*;
+QuoteResponse quote = client.initiate().quote(
+        new QuoteRequest(bill.amountLocalCur().intValue(), bill.payItemId()));
 
-import java.util.List;
+CollectionRequest request = CollectionRequest.builder(
+                quote.quoteId(),
+                "237699999999",
+                "customer@example.com")
+        .serviceNumber("METER-001")
+        .customerName("Jane Doe")      // required when service.isReqCustomerName()
+        .build();
 
-public class ProductCollectionExample {
-    private static String separator = "  --  ";
-
-    // Some sample values - these are not valid identifiers
-    private static String serviceNumber = "011234665878";
-    // Product service number
-    private static int serviceId = 888887;
-
-    // Customer details
-    private static String phone = "123754334";
-    private static String email = "name@example.com";
-
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(false);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-        MasterdataApi masterDataApi = new MasterdataApi(apiClient);
-
-        try {
-            // Retrieve available product packages 
-
-            List<Product> products = masterDataApi.productGet(AccessDetails.VERSION, serviceId);
-            
-            // Select the first product for sake of demonstration
-            
-            Product product = products.get(0);
-
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(product.getAmountLocalCur());
-            quote.setPayItemId(product.getPayItemId());
-
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-            
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(String.valueOf(serviceNumber));
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-                // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-            // add more handling
-        }
-    }
-}
-
-```
-### Non Searchable Bill
-
-```java 
-package org.maviance.s3pjavaclient.examples;
-
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.model.*;
-
-import java.util.List;
-
-public class NonSearchableBillCollectionExample {
-
-    // Some sample values - these are not valid identifiers
-    private static String merchantCode = "ENEO";
-    private static int serviceId = 98999;
-    
-    private static String serviceNumber = "";
-    private static Integer amount = 100;
-
-    // Customer details
-    private static String phone = "653754334";
-    private static String email = "name@example.com";
-    private static String address = "My Street N33";
-    private static String name = "John Doe";
-
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(true);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-
-        try {
-        
-            // search open bills 
-        
-            List<Bill> bills = initiateApi.billGet(AccessDetails.VERSION, merchantCode, serviceId, serviceNumber);
-            if (bills.isEmpty()) {
-            // Should have found atleast one record."
-                System.exit(0);
-            }
-
-            // Select the first bill for sake of demonstration
-            Bill bill = bills.get(0);
-            
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(amount);
-            quote.setPayItemId(bill.getPayItemId());
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(""+serviceNumber);
-            collection.setCustomerAddress(address);
-            collection.setCustomerName(name);
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-            // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-            // add more handling
-        }
-
-    }
-}
+CollectionResponse response = client.confirm().collect(request);
 ```
 
-### Searchable Bill
-```java 
-package org.maviance.s3pjavaclient.examples;
+## End-to-end example — voucher purchase
 
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.model.*;
+For services of type `VOUCHER` the digital code is delivered on
+`CollectionResponse.pin()` once the collection succeeds.
 
-import java.util.List;
-
-public class SearchableBillCollectionExample {
-
-    // Some sample values - these are not valid identifiers
-    private static String merchantCode = "ENEO";
-    private static int serviceId = 10039;
-    
-    // Service number is the contract number with the merchant
-    private static String serviceNumber = "2021961727";
-
-    // Customer details
-    private static String phone = "698223844";
-    private static String email = "name@example.com";
-
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(false);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-
-        try {
-            // Retrieve open bills and list them out 
-            List<Bill> bills = initiateApi.billGet(AccessDetails.VERSION, merchantCode, serviceId, serviceNumber);
-            if (bills.isEmpty()) {
-            // Should have found atleast one record."
-                System.exit(0);
-            }
-            
-            // Select the first bill for sake of demonstration
-            Bill bill = bills.get(0);
-
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(bill.getAmountLocalCur());
-            quote.setPayItemId(bill.getPayItemId());
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(serviceNumber);
-//            collection.setCustomerName("Lowe Florian");
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-            // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-            // add more handling
-        }
-
-    }
-}
-```
-### Subscription
-```java 
-package org.maviance.s3pjavaclient.examples;
-
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.model.*;
-
-import java.util.List;
-
-public class SubscriptionCollectionExample {
-
-    // Some sample values - these are not valid identifiers
-    // customer number - customer identifier in biller's system
-   
-    private static String merchantCode = "SABC";
-    private static int serviceId = 001235485;
-    // Subscription service number
-    private static String serviceNumber = null;
-    // Customer number
-    private static String customerNumber = "0000000999";
-
-    // Customer details
-    private static String phone = "6532548545";
-    private static String email = "name@example.com";
-
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(true);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-
-        try {
-            // Search subscription package 
-            List<Subscription> subscriptions = initiateApi.subscriptionGet(AccessDetails.VERSION, merchantCode, String.valueOf(serviceId), serviceNumber, customerNumber);
-            if (subscriptions.isEmpty()) {
-            // Should have found atleast one record."
-                System.exit(0);
-            }
-            
-            // Select the first package for sake of demonstration
-
-            Subscription subscription = subscriptions.get(0);
-
-
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(1000);
-            quote.setPayItemId(subscription.getPayItemId());
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerNumber(customerNumber);
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(""+serviceNumber);
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-            // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-            // add more handling here
-        }
-
-    }
-}
-
-```
-### Top Up 
 ```java
-package org.maviance.s3pjavaclient.examples;
+List<Product> vouchers = client.masterdata().vouchers(serviceId);
+Product voucher = vouchers.get(0);
 
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.api.MasterdataApi;
-import org.maviance.s3pjavaclient.model.*;
+QuoteResponse quote = client.initiate().quote(
+        new QuoteRequest(voucher.amountLocalCur().intValue(), voucher.payItemId()));
 
-import java.util.List;
+CollectionResponse response = client.confirm().collect(
+        CollectionRequest.builder(quote.quoteId(), customerPhone, customerEmail)
+                .build());
 
-public class TopupCollectionExample {
-    private static String separator = "  --  ";
-
-    // Some sample values - these are not valid identifiers
-
-    private static int serviceId = 9998878;
-
-    // Top up service number
-    private static String serviceNumber = "987987987";
-
-    // Customer details
-    private static String phone = "698223844";
-    private static String email = "name@example.com";
-
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(false);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-        MasterdataApi masterdataApi = new MasterdataApi(apiClient);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-
-        try {
-            // Retrieve available topup packages 
-
-            List<Topup> topups = masterdataApi.topupGet(AccessDetails.VERSION, serviceId);
-
-            // Select the first top up package for sake of demonstration
-
-            int indexOfTopup = 0;
-            Topup topup = topups.get(indexOfTopup);
-            if (topup.getAmountType() == Topup.AmountTypeEnum.CUSTOM) {
-                //you must set the amount;
-                final int topUpAmount = 100;
-                topup.setAmountLocalCur(topUpAmount);
-            }
-
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(topup.getAmountLocalCur());
-            quote.setPayItemId(topup.getPayItemId());
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-            
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(""+serviceNumber);
-            collection.setCustomerName("Lowe Florian");
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-            // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-             // add more handling here
-        }
-
-    }
-}
-
+String redemptionPin = response.pin();
 ```
-### Voucher
+
+## Pre-payment verification
+
+For services that report `isVerifiable: true`, you can verify a service
+number before quoting:
+
 ```java
-package org.maviance.s3pjavaclient.examples;
+boolean valid = client.accountValidation()
+        .verifyServiceNumber("ENEO", 1234, "01234567");
+```
 
-import org.maviance.s3pjavaclient.ApiClient;
-import org.maviance.s3pjavaclient.ApiException;
-import org.maviance.s3pjavaclient.api.ConfirmApi;
-import org.maviance.s3pjavaclient.api.InitiateApi;
-import org.maviance.s3pjavaclient.api.MasterdataApi;
-import org.maviance.s3pjavaclient.api.VerifyApi;
-import org.maviance.s3pjavaclient.model.*;
+## Historical lookups
 
-import java.util.List;
+Search by **exactly one** of:
 
-public class VoucherCollectionExample {
-    private static String separator = "  --  ";
+```java
+client.verify().historyByPtn("PTN-202605020800001");
+client.verify().historyByTrid("ORDER-2026-05-02-0001");
+client.verify().historyByDateRange(
+        LocalDate.parse("2026-05-01"),
+        LocalDate.parse("2026-05-31"));
+```
 
-    private static int serviceId = 2000;
+Combinations are rejected by the server with an error envelope.
 
-    // Voucher service number
-    private static String serviceNumber = "00000123456";
+## Error handling
 
-    // Customer details
-    private static String phone = "653754334";
-    private static String email = "name@example.com";
+```java
+import org.maviance.s3p.S3pApiException;
+import org.maviance.s3p.S3pAuthException;
 
-    public static void main(String[] args) {
-        ApiClient apiClient = new ApiClient(AccessDetails.BASE_URL, AccessDetails.ACCESS_TOKEN, AccessDetails.ACCESS_SECRET);
-        apiClient.setDebugging(true);
-        apiClient.setDebugging(false);
-        ConfirmApi confirmApi = new ConfirmApi(apiClient);
-        MasterdataApi masterdataApi = new MasterdataApi(apiClient);
-        InitiateApi initiateApi = new InitiateApi(apiClient);
-
-        try {
-            // Retrieve available voucher packages 
-            List<Product> products = masterdataApi.voucherGet(AccessDetails.VERSION, serviceId);
-
-            // Select the first top up package for sake of demonstration
-
-            Product voucher = products.get(0);
-            //set the voucher amount.
-            voucher.setAmountLocalCur(1000);
-
-            // Retrieve pricing information by requesting a quote for a set amount for the linked payment item id   
-
-            QuoteRequest quote = new QuoteRequest();
-            quote.setAmount(voucher.getAmountLocalCur());
-            quote.setPayItemId(voucher.getPayItemId());
-            Quote offer = initiateApi.quotestdPost(AccessDetails.VERSION, quote);
-
-            // Finalize by confirming the collection
-            
-            CollectionRequest collection = new CollectionRequest();
-            collection.setCustomerPhonenumber(phone);
-            collection.setCustomerEmailaddress(email);
-            collection.setQuoteId(offer.getQuoteId());
-            collection.setServiceNumber(""+serviceNumber);
-
-            CollectionResponse payment = confirmApi.collectstdPost(AccessDetails.VERSION, collection);
-
-            // Lookup record in Smobilpay by PTN to retrieve the payment status
-            VerifyApi verifyApi = new VerifyApi(apiClient);
-            List<PaymentStatus> historystds =  verifyApi.verifytxGet(AccessDetails.VERSION, payment.getPtn(), null);
-            if (historystds.size() != 1) {
-            // Should have found exactly one record."
-                System.exit(0);
-            }
-        } catch (ApiException e) {
-            // add more handling
-        }
-
+try {
+    QuoteResponse quote = client.initiate().quote(request);
+} catch (S3pAuthException e) {
+    // OAuth 2.0 token issuance failed — bad credentials, etc.
+    log.error("Auth failed: status={}, oauthError={}", e.httpStatus(), e.oauthError());
+} catch (S3pApiException e) {
+    // S3P API returned a non-2xx with the standard Error envelope
+    e.error().ifPresent(err ->
+        log.error("API error: respCode={}, devMsg={}, link={}",
+                err.respCode(), err.devMsg(), err.link()));
+    if (e.httpStatus() == 498) {
+        // Quote expired — re-quote and retry
     }
 }
-
 ```
 
-### A) Run Example in Command Line
-Let's consider that we have the version 3.0.2 of the api.
-As example, we can run the file **Check.java** checks to see if the server is up and running nolly
+The full S3P error catalog (the `respCode` → meaning mapping) is
+delivered to partners during onboarding.
 
-Execute:
+## Configuration reference
+
+| Option              | Default   | Notes                                              |
+|---------------------|-----------|----------------------------------------------------|
+| `baseUrl`           | required  | Issued during onboarding                           |
+| `credentials`       | required  | `publicKey` / `secretKey` pair                     |
+| `apiVersion`        | `3.0.0`   | Value sent as `x-api-version` header               |
+| `requestTimeout`    | `30s`     | Per-request timeout for both API and token calls   |
+| `tokenRefreshSkew`  | `30s`     | Mint a fresh token this far ahead of expiry        |
+
+To use a custom `HttpClient` (proxies, custom SSL, etc.):
+
+```java
+HttpClient http = HttpClient.newBuilder()
+        .proxy(ProxySelector.of(new InetSocketAddress("proxy", 3128)))
+        .build();
+S3pClient client = S3pClient.create(config, http);
 ```
-javac -cp ".;lib/s3p-java-client-1.0.0.jar" Check.java
+
+## Onboarding
+
+Base URL, partner credentials (`publicKey` / `secretKey`), callback URL
+registration, and the full error catalog are issued by Maviance support
+during partner onboarding. They are intentionally not published in the
+spec or this README. Contact **support@smobilpay.com**.
+
+## Development
+
+Build:
+
+```bash
+./gradlew build
 ```
-This will generate a file **Check.class** which contains the byte code to run in the next step.
 
-#### Step 2: Run
+Run tests + coverage gate (80% instruction coverage):
 
-Execute:
-```
-java -cp ".;lib/s3p-java-client-1.0.0.jar" Check
+```bash
+./gradlew check
 ```
 
-###B) Run in a project
-This is the simplest approach for running an example file. 
-1. Copy the `s3p_java_client_project` folder into your project.
-2. You can now use the classes in the library as shown in the `docs` folder
+Coverage report: `build/reports/jacoco/test/html/index.html`.
 
-## Documentation for Authentication
+Generate Javadoc HTML (requires a full JDK with the `javadoc` tool —
+not just a JRE):
 
-The authentication process is handled by the library. All you have to do is provide the BASE_URL, ACCESS_TOKEN and ACCESS_SECRET as shown in the example above 
+```bash
+./gradlew javadoc                       # HTML at build/docs/javadoc
+./gradlew build -PenableJavadocJar=true # also bundles the -javadoc.jar artifact
+```
 
+Publish to local Maven cache:
 
+```bash
+./gradlew publishToMavenLocal
+```
+
+## License
+
+Proprietary — Maviance.
