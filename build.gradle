@@ -71,7 +71,7 @@ jacocoTestCoverageVerification {
                 minimum = 0.80
             }
             excludes = [
-                'org.maviance.s3p.model.*',
+                'org.maviance.smobilpay.model.*',
             ]
         }
     }
@@ -91,13 +91,47 @@ javadoc {
     failOnError = false
 }
 
+// --- Smoke-test harness ---------------------------------------------------
+// Standalone runner that exercises the client against a real partner
+// environment. Not part of the published library — kept in its own source
+// set so the runtime/test classpaths stay clean.
+
+sourceSets {
+    samples {
+        java.srcDirs = ['src/samples/java']
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    samplesImplementation.extendsFrom implementation, api
+    samplesRuntimeOnly.extendsFrom runtimeOnly
+}
+
+dependencies {
+    samplesImplementation sourceSets.main.output
+    samplesRuntimeOnly "org.slf4j:slf4j-simple:${slf4jVersion}"
+}
+
+tasks.register('runSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Run the Smobilpay smoke-test harness against a real partner environment. Reads config from --args="<path>", $SMOBILPAY_SMOKE_CONFIG, or ./smoke-test.json. See smoke-test.example.json.'
+    classpath = sourceSets.samples.runtimeClasspath
+    mainClass = 'org.maviance.smobilpay.samples.SmokeTest'
+    standardInput = System.in
+    // Forward SMOBILPAY_SMOKE_CONFIG so the harness picks up the explicit
+    // path override when set; the JSON config file carries everything else.
+    environment System.getenv()
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
             pom {
-                name = 's3p-java-client'
-                description = 'Java client library for the Smobilpay S3P partner API (v3.2.0).'
+                name = 'smobilpay-java-client'
+                description = 'Java client library for the Smobilpay partner API (v3.2.0).'
                 url = 'https://github.com/maviance/smobilpay-java'
                 licenses {
                     license {

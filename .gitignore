@@ -25,3 +25,7 @@ target/
 
 # Misc
 .DS_Store
+
+# Smoke-test config — contains partner credentials, never commit.
+# (The committed smoke-test.example.json template stays tracked.)
+smoke-test.json

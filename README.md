@@ -1,23 +1,29 @@
-# s3p-java-client
+# smobilpay-java-client
 
-Java client library for the **Smobilpay S3P partner API** (v3.2.0).
+Java client library for the **Smobilpay partner API** (v3.2.0).
 
 This is the curated, partner-facing client. It covers every endpoint a
-partner integrator needs to integrate payment collections, payouts,
-value-added services, and account/service discovery — and nothing else.
+partner integrator needs to move money in and out, sell value-added
+services, and drive a payment UI from the static catalog.
 
 ## What this client does
 
 - **Payment collections.** Take payment from a customer's mobile wallet
-  via a quote-then-confirm flow. Works for collections, bill payment,
-  top-up, voucher purchase, product purchase, and subscription top-up.
-- **Disbursements.** Send funds out to a recipient's mobile wallet.
+  via a quote-then-confirm flow. Money flows *out* of the customer's
+  wallet against a `Cashout` item. Works for cash-out (generic
+  mobile-money collection), bill payment, top-up, voucher purchase,
+  product purchase, and subscription top-up.
+- **Disbursements.** Send funds out to a recipient's mobile wallet using
+  the same quote-then-confirm flow against a `Cashin` item. Money flows
+  *into* the recipient's wallet.
 - **Account and service discovery.** Retrieve the static catalog of
   merchants, services, products, and payment items needed to drive a
   payment UI.
 - **Status verification.** Look up the live status of a previously
   issued transaction by `ptn` or by your own custom `trid`, and search
   historical activity by date range.
+- **Pre-payment account validation.** Check that a customer's service
+  number is well-formed and accepted by the merchant before quoting.
 
 ## Requirements
 
@@ -28,18 +34,18 @@ value-added services, and account/service discovery — and nothing else.
 
 This client uses the JDK's built-in `java.net.http.HttpClient`. The only
 third-party dependencies are Jackson Databind (for JSON) and SLF4J (for
-logging facade). No HTTP client conflicts with Spring Boot, Quarkus,
+the logging facade). No HTTP client conflicts with Spring Boot, Quarkus,
 Micronaut, or stand-alone Java applications.
 
 ## Installation
 
-The library is published as `org.maviance:s3p-java-client:3.2.0`.
+The library is published as `org.maviance:smobilpay-java-client:3.2.0`.
 
 ### Gradle (Groovy DSL)
 
 ```groovy
 dependencies {
-    implementation 'org.maviance:s3p-java-client:3.2.0'
+    implementation 'org.maviance:smobilpay-java-client:3.2.0'
 }
 ```
 
@@ -47,7 +53,7 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("org.maviance:s3p-java-client:3.2.0")
+    implementation("org.maviance:smobilpay-java-client:3.2.0")
 }
 ```
 
@@ -56,30 +62,30 @@ dependencies {
 ```xml
 <dependency>
     <groupId>org.maviance</groupId>
-    <artifactId>s3p-java-client</artifactId>
+    <artifactId>smobilpay-java-client</artifactId>
     <version>3.2.0</version>
 </dependency>
 ```
 
 ## Quick start
 
-The library exposes a single `S3pClient` facade. Construct it once per
-application with your partner credentials; it lazily mints and caches
-the OAuth 2.0 bearer token for the lifetime of the JVM.
+The library exposes a single `SmobilpayClient` facade. Construct it once
+per application with your partner credentials; it lazily mints and
+caches the OAuth 2.0 bearer token for the lifetime of the JVM.
 
 ```java
-import org.maviance.s3p.S3pClient;
-import org.maviance.s3p.S3pConfig;
-import org.maviance.s3p.model.Ping;
+import org.maviance.smobilpay.SmobilpayClient;
+import org.maviance.smobilpay.SmobilpayConfig;
+import org.maviance.smobilpay.model.Ping;
 
-S3pConfig config = S3pConfig.builder()
+SmobilpayConfig config = SmobilpayConfig.builder()
         .baseUrl("https://api.example.invalid")           // issued during onboarding
         .credentials(
-                System.getenv("S3P_PUBLIC_KEY"),
-                System.getenv("S3P_SECRET_KEY"))
+                System.getenv("SMOBILPAY_PUBLIC_KEY"),
+                System.getenv("SMOBILPAY_SECRET_KEY"))
         .build();
 
-try (S3pClient client = S3pClient.create(config)) {
+try (SmobilpayClient client = SmobilpayClient.create(config)) {
     Ping pong = client.verify().ping();
     System.out.println("Server time: " + pong.time());
     System.out.println("Server version: " + pong.version());
@@ -88,8 +94,8 @@ try (S3pClient client = S3pClient.create(config)) {
 
 ## Authentication
 
-The S3P API uses **OAuth 2.0 `client_credentials`** exclusively. HMAC
-signing (the legacy `s3pAuth` scheme) is **not** supported.
+The Smobilpay API uses **OAuth 2.0 `client_credentials`** exclusively.
+Legacy HMAC request signing is **not** supported.
 
 The client handles token issuance for you:
 
@@ -103,49 +109,81 @@ The client handles token issuance for you:
 
 To force a refresh (e.g. after a 401), call `client.tokens().refresh()`.
 
+## Choosing the right flow
+
+Every flow follows the same three-step shape — **discover → quote →
+confirm** — and confirmation goes through a single endpoint
+(`POST /v2/collectstd`) regardless of whether the payment item is a
+cash-out (collection), a bill, a top-up, a voucher, a subscription, a
+product, or a cash-in (disbursement).
+
+What changes per flow is the masterdata call you use to discover the
+right `payItemId`:
+
+| Use case                       | Masterdata call                         | Item type      | Confirm call             | Notes                                                            |
+|--------------------------------|-----------------------------------------|----------------|--------------------------|------------------------------------------------------------------|
+| Collection (cash-out)          | `masterdata().cashouts(serviceId)`      | `Cashout`      | `confirm().collect(req)` | Generic mobile-money collection. Money flows *out* of customer's wallet.|
+| Bill payment                   | `initiate().bills(merchant, …)`         | `Bill`         | `confirm().collect(req)` | Bill is looked up by `serviceNumber`, not from static masterdata.|
+| Airtime top-up                 | `masterdata().topups(serviceId)`        | `Topup`        | `confirm().collect(req)` | Recipient phone goes on `customerPhonenumber` or `serviceNumber`.|
+| Voucher purchase               | `masterdata().vouchers(serviceId)`      | `Product`      | `confirm().collect(req)` | Code returned on `CollectionResponse.pin()`.                     |
+| Product purchase               | `masterdata().products(serviceId)`      | `Product`      | `confirm().collect(req)` | Same shape as voucher but no PIN on the response.                |
+| Subscription top-up (pay-TV …) | `initiate().subscriptions(merchant, …)` | `Subscription` | `confirm().collect(req)` | Looked up by `serviceNumber` *or* `customerNumber`.              |
+| Disbursement (cash-in)         | `masterdata().cashins(serviceId)`       | `Cashin`       | `confirm().collect(req)` | Payout to recipient. Same `collect()` endpoint, item is a cash-in.|
+
+For every item type the `payItemId` field is what flows into the quote
+request. The `service.isReq*` flags on the `Service` masterdata entry
+tell you which optional `CollectionRequest` fields (customer name,
+service number, customer number, …) become required for that service.
+
 ## Conventions
 
 - All requests and responses are **JSON**.
-- **Monetary amounts** on `QuoteRequest.amount` are integers in the local
-  currency of the payment item (no decimals). Other amount fields on
-  responses are floats per spec.
+- **Monetary amounts** on `QuoteRequest.amount` are integers in the
+  local currency of the payment item (no decimals). Other amount fields
+  on responses are floats per spec.
 - **Currencies** are ISO 4217 codes (e.g. `XAF`, `EUR`).
 - **Countries** are ISO 3166-1 alpha-3 codes (e.g. `CMR`).
-- **Errors** raised by the API throw `S3pApiException`. Match on
+- **Phone numbers** are E.164 without the leading `+` (e.g.
+  `237699999999`).
+- **Errors** raised by the API throw `SmobilpayApiException`. Match on
   `error().get().respCode()` for programmatic handling — that is the
   canonical machine identifier per the partner spec.
 - The `x-api-version: 3.0.0` header is attached on every secured
-  request. Override via `S3pConfig.builder().apiVersion(...)` if you
-  need a different protocol shape.
+  request. Override via `SmobilpayConfig.builder().apiVersion(...)` if
+  you need a different protocol shape.
 
-## End-to-end example — cash-in collection
+## Collection — cash-out
+
+A `Cashout` item collects funds *out* of the customer's mobile wallet
+into the partner's balance. This is the generic mobile-money collection
+flow.
 
 ```java
-import org.maviance.s3p.S3pClient;
-import org.maviance.s3p.S3pConfig;
-import org.maviance.s3p.model.*;
+import org.maviance.smobilpay.SmobilpayClient;
+import org.maviance.smobilpay.SmobilpayConfig;
+import org.maviance.smobilpay.model.*;
 
 import java.util.List;
 
-S3pConfig config = S3pConfig.builder()
+SmobilpayConfig config = SmobilpayConfig.builder()
         .baseUrl("https://api.example.invalid")
         .credentials(publicKey, secretKey)
         .build();
 
-try (S3pClient client = S3pClient.create(config)) {
+try (SmobilpayClient client = SmobilpayClient.create(config)) {
 
-    // 1. Discover the cash-in items available for service 999999
-    List<Cashin> cashins = client.masterdata().cashins(999999);
-    Cashin cashin = cashins.get(0);
+    // 1. Discover the cash-out items available for service 999999
+    List<Cashout> cashouts = client.masterdata().cashouts(999999L);
+    Cashout cashout = cashouts.get(0);
 
     // 2. Request a quote (amounts are integers in local currency)
     QuoteResponse quote = client.initiate().quote(
-            new QuoteRequest(500, cashin.payItemId()));
+            new QuoteRequest(500, cashout.payItemId()));
 
     // 3. Confirm the collection
     CollectionRequest request = CollectionRequest.builder(
                     quote.quoteId(),
-                    "237699999999",         // customer phone (E.164, no leading +)
+                    "237699999999",          // customer phone (E.164, no leading +)
                     "customer@example.com")  // customer email
             .serviceNumber("2371122334455")  // required when service.isReqServiceNumber()
             .trid("ORDER-2026-05-02-0001")   // optional caller-managed reference
@@ -163,10 +201,10 @@ try (S3pClient client = S3pClient.create(config)) {
 }
 ```
 
-## End-to-end example — bill payment
+## Collection — bill payment
 
 ```java
-List<Bill> bills = client.initiate().bills("CDE", 4321, "METER-001");
+List<Bill> bills = client.initiate().bills("CDE", 4321L, "METER-001");
 Bill bill = bills.get(0);
 
 QuoteResponse quote = client.initiate().quote(
@@ -183,7 +221,32 @@ CollectionRequest request = CollectionRequest.builder(
 CollectionResponse response = client.confirm().collect(request);
 ```
 
-## End-to-end example — voucher purchase
+## Collection — airtime top-up
+
+```java
+List<Topup> topups = client.masterdata().topups(serviceId);
+Topup topup = topups.get(0);
+
+// FIXED-amount top-ups quote at the catalog price; CUSTOM-amount top-ups
+// take any integer in the local currency.
+int amount = topup.amountLocalCur() != null
+        ? topup.amountLocalCur().intValue()
+        : 500;
+
+QuoteResponse quote = client.initiate().quote(
+        new QuoteRequest(amount, topup.payItemId()));
+
+CollectionRequest request = CollectionRequest.builder(
+                quote.quoteId(),
+                "237699999999",
+                "customer@example.com")
+        .serviceNumber("237699999999")   // recipient MSISDN
+        .build();
+
+CollectionResponse response = client.confirm().collect(request);
+```
+
+## Collection — voucher purchase
 
 For services of type `VOUCHER` the digital code is delivered on
 `CollectionResponse.pin()` once the collection succeeds.
@@ -202,6 +265,76 @@ CollectionResponse response = client.confirm().collect(
 String redemptionPin = response.pin();
 ```
 
+## Collection — product purchase
+
+Generic products work like vouchers but do not return a redemption PIN:
+
+```java
+List<Product> products = client.masterdata().products(serviceId);
+Product product = products.get(0);
+
+QuoteResponse quote = client.initiate().quote(
+        new QuoteRequest(product.amountLocalCur().intValue(), product.payItemId()));
+
+CollectionResponse response = client.confirm().collect(
+        CollectionRequest.builder(quote.quoteId(), customerPhone, customerEmail)
+                .build());
+```
+
+## Collection — subscription top-up
+
+Subscriptions (e.g. pay-TV like Canal+) are looked up by *either*
+`serviceNumber` *or* `customerNumber` — pass one and leave the other
+`null`. The returned list may contain several `Subscription` items
+representing different renewal options for the same customer; pick one
+and quote against its `payItemId`.
+
+```java
+List<Subscription> subs = client.initiate().subscriptions(
+        "CANALPLUS",
+        4321L,
+        "DECODER-001234",   // serviceNumber
+        null);              // customerNumber (or vice versa)
+Subscription sub = subs.get(0);
+
+QuoteResponse quote = client.initiate().quote(
+        new QuoteRequest(sub.amountLocalCur().intValue(), sub.payItemId()));
+
+CollectionRequest request = CollectionRequest.builder(
+                quote.quoteId(),
+                "237699999999",
+                "customer@example.com")
+        .serviceNumber("DECODER-001234")
+        .customerName(sub.customerName())
+        .build();
+
+CollectionResponse response = client.confirm().collect(request);
+```
+
+## Disbursement — cash-in
+
+A `Cashin` item pays funds *into* a recipient's mobile wallet from the
+partner's balance. It goes through the same `/v2/collectstd` endpoint
+as collections — same `CollectionRequest`, same `CollectionResponse`.
+
+```java
+List<Cashin> cashins = client.masterdata().cashins(serviceId);
+Cashin cashin = cashins.get(0);
+
+QuoteResponse quote = client.initiate().quote(
+        new QuoteRequest(10_000, cashin.payItemId()));
+
+CollectionRequest request = CollectionRequest.builder(
+                quote.quoteId(),
+                "237699999999",          // recipient phone
+                "recipient@example.com")
+        .serviceNumber("237699999999")   // recipient MSISDN
+        .trid("PAYOUT-2026-05-02-0001")
+        .build();
+
+CollectionResponse response = client.confirm().collect(request);
+```
+
 ## Pre-payment verification
 
 For services that report `isVerifiable: true`, you can verify a service
@@ -209,7 +342,31 @@ number before quoting:
 
 ```java
 boolean valid = client.accountValidation()
-        .verifyServiceNumber("ENEO", 1234, "01234567");
+        .verifyServiceNumber("ENEO", 1234L, "01234567");
+```
+
+## Catalog discovery
+
+Most integrations cache the catalog and refresh it on a schedule:
+
+```java
+List<Merchant> merchants = client.masterdata().merchants();
+List<Service>  services  = client.masterdata().services();
+```
+
+The `Service` record tells you which flow applies (cash-out, bill,
+top-up, voucher, product, subscription, cash-in) via its `serviceType`
+and which optional `CollectionRequest` fields the merchant requires via
+the `isReq*` boolean flags.
+
+## Account and ping utilities
+
+```java
+// Liveness check + protocol/version handshake.
+Ping pong = client.verify().ping();
+
+// Aggregator-level account info: balance, currency, status.
+Account account = client.verify().account();
 ```
 
 ## Historical lookups
@@ -229,16 +386,16 @@ Combinations are rejected by the server with an error envelope.
 ## Error handling
 
 ```java
-import org.maviance.s3p.S3pApiException;
-import org.maviance.s3p.S3pAuthException;
+import org.maviance.smobilpay.SmobilpayApiException;
+import org.maviance.smobilpay.SmobilpayAuthException;
 
 try {
     QuoteResponse quote = client.initiate().quote(request);
-} catch (S3pAuthException e) {
+} catch (SmobilpayAuthException e) {
     // OAuth 2.0 token issuance failed — bad credentials, etc.
     log.error("Auth failed: status={}, oauthError={}", e.httpStatus(), e.oauthError());
-} catch (S3pApiException e) {
-    // S3P API returned a non-2xx with the standard Error envelope
+} catch (SmobilpayApiException e) {
+    // API returned a non-2xx with the standard Error envelope
     e.error().ifPresent(err ->
         log.error("API error: respCode={}, devMsg={}, link={}",
                 err.respCode(), err.devMsg(), err.link()));
@@ -248,7 +405,7 @@ try {
 }
 ```
 
-The full S3P error catalog (the `respCode` → meaning mapping) is
+The full Smobilpay error catalog (the `respCode` → meaning mapping) is
 delivered to partners during onboarding.
 
 ## Configuration reference
@@ -267,7 +424,7 @@ To use a custom `HttpClient` (proxies, custom SSL, etc.):
 HttpClient http = HttpClient.newBuilder()
         .proxy(ProxySelector.of(new InetSocketAddress("proxy", 3128)))
         .build();
-S3pClient client = S3pClient.create(config, http);
+SmobilpayClient client = SmobilpayClient.create(config, http);
 ```
 
 ## Onboarding
