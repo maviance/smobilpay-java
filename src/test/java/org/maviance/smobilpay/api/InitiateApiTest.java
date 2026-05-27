@@ -48,6 +48,33 @@ class InitiateApiTest extends WireMockTestBase {
     }
 
     @Test
+    void billsToleratesIsoDateTimeForBillDateField() {
+        // Regression: acceptance occasionally emits Bill date fields as
+        // ISO offset-datetimes ("2025-11-05T00:00:00+01:00") even though
+        // the spec types them LocalDate. The lenient deserializer must
+        // extract the date portion without breaking the response.
+        wireMock.stubFor(get(urlEqualTo("/v2/bill?merchant=ENEO&serviceid=10039&serviceNumber=METER-LATE"))
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\"serviceid\":10039,\"merchant\":\"ENEO\","
+                                + "\"payItemId\":\"PI-BILL-LATE\",\"amountType\":\"FIXED\","
+                                + "\"localCur\":\"XAF\",\"name\":\"Overdue\","
+                                + "\"amountLocalCur\":2500.0,\"billType\":\"OVERDUE\","
+                                + "\"penaltyAmount\":0.0,\"payOrder\":1,"
+                                + "\"serviceNumber\":\"METER-LATE\","
+                                + "\"billDate\":\"2025-11-05T00:00:00+01:00\","
+                                + "\"billDueDate\":\"2025-12-05T00:00:00+01:00\"}]")));
+
+        List<Bill> bills = client.initiate().bills("ENEO", 10039, "METER-LATE");
+
+        assertThat(bills).hasSize(1);
+        Bill bill = bills.get(0);
+        assertThat(bill.billDate()).isEqualTo(java.time.LocalDate.of(2025, 11, 5));
+        assertThat(bill.billDueDate()).isEqualTo(java.time.LocalDate.of(2025, 12, 5));
+        assertThat(bill.billType()).isEqualTo(BillType.OVERDUE);
+    }
+
+    @Test
     void subscriptionsRequiresEitherServiceOrCustomerNumber() {
         assertThatThrownBy(() -> client.initiate().subscriptions("CDE", 4321L, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
