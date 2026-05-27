@@ -1,8 +1,14 @@
 package org.maviance.smobilpay.samples;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.maviance.smobilpay.SmobilpayApiException;
 import org.maviance.smobilpay.SmobilpayAuthException;
 import org.maviance.smobilpay.SmobilpayClient;
@@ -12,6 +18,8 @@ import org.maviance.smobilpay.model.ApiError;
 import org.maviance.smobilpay.model.Bill;
 import org.maviance.smobilpay.model.Cashin;
 import org.maviance.smobilpay.model.Cashout;
+import org.maviance.smobilpay.model.CollectionRequest;
+import org.maviance.smobilpay.model.CollectionResponse;
 import org.maviance.smobilpay.model.CustomerAccount;
 import org.maviance.smobilpay.model.Merchant;
 import org.maviance.smobilpay.model.PaymentItem;
@@ -25,30 +33,28 @@ import org.maviance.smobilpay.model.ServiceType;
 import org.maviance.smobilpay.model.Subscription;
 import org.maviance.smobilpay.model.Topup;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
- * Smoke-test harness for the Smobilpay client against a real partner environment.
+ * Smoke-test harness for the Smobilpay client against a real partner
+ * environment.
  *
  * <h2>Configuration</h2>
  *
- * <p>All settings are read from a single JSON config file. The path is
+ * <p>
+ * All settings are read from a single JSON config file. The path is
  * resolved in this order:
  *
  * <ol>
- *   <li>The first command-line argument, if present.</li>
- *   <li>The {@code SMOBILPAY_SMOKE_CONFIG} environment variable, if set.</li>
- *   <li>{@code ./smoke-test.json} in the current working directory.</li>
+ * <li>The first command-line argument, if present.</li>
+ * <li>The {@code SMOBILPAY_SMOKE_CONFIG} environment variable, if set.</li>
+ * <li>{@code ./smoke-test.json} in the current working directory.</li>
  * </ol>
  *
- * <p>See {@code smoke-test.example.json} at the repo root for a fully
+ * <p>
+ * See {@code smoke-test.example.json} at the repo root for a fully
  * populated template. {@code baseUrl}, {@code publicKey} and
  * {@code secretKey} are required; every per-flow block is optional and
  * an absent block simply skips the corresponding scenario.
@@ -56,30 +62,39 @@ import java.util.TreeMap;
  * <h2>Spec terminology</h2>
  *
  * <ul>
- *   <li><strong>cashout</strong> = collection (money flows <em>out</em>
- *       of customer's wallet, partner accepts payment).</li>
- *   <li><strong>cashin</strong>  = disbursement (money flows <em>into</em>
- *       recipient's wallet, partner pays out).</li>
+ * <li><strong>cashout</strong> = collection (money flows <em>out</em>
+ * of customer's wallet, partner accepts payment).</li>
+ * <li><strong>cashin</strong> = disbursement (money flows <em>into</em>
+ * recipient's wallet, partner pays out).</li>
  * </ul>
  *
  * <h2>What it does</h2>
  *
- * <p>The harness is intentionally <strong>read-only / quote-only</strong>. It
- * never calls {@code /v2/collectstd}, so it does not move money.
+ * <p>
+ * The harness is <strong>quote-only by default</strong> and never calls
+ * {@code /v2/collectstd} unless a flow's config block opts in. Today only
+ * the {@code cashin} block opts in: when {@code cashin.collect} is
+ * {@code true} (and {@code cashin.customerPhonenumber} is set to the
+ * recipient MSISDN), the cash-in scenario follows the quote with a real
+ * {@code POST /v2/collectstd}, which <em>moves money</em> on the configured
+ * environment. Omit {@code collect} (or set it to {@code false}) to stay
+ * quote-only.
  *
  * <ol>
- *   <li>Ping — proves OAuth 2.0 mint + bearer + {@code x-api-version} work end to end.</li>
- *   <li>Token refresh — forces a fresh mint, re-pings.</li>
- *   <li>Account profile — agent identity, balance, daily limit.</li>
- *   <li>Merchant list — discovery of merchants supported by the system.</li>
- *   <li>Service list — discovery and type distribution.</li>
- *   <li>Per-flow discovery + quote for every configured service type
- *       (cashout, bill, topup, voucher, product, subscription, cashin).</li>
- *   <li>Pre-payment {@code serviceNumber} verification (optional).</li>
- *   <li>History over the last 7 days.</li>
+ * <li>Ping — proves OAuth 2.0 mint + bearer + {@code x-api-version} work end to
+ * end.</li>
+ * <li>Token refresh — forces a fresh mint, re-pings.</li>
+ * <li>Account profile — agent identity, balance, daily limit.</li>
+ * <li>Merchant list — discovery of merchants supported by the system.</li>
+ * <li>Service list — discovery and type distribution.</li>
+ * <li>Per-flow discovery + quote for every configured service type
+ * (cashout, bill, topup, voucher, product, subscription, cashin).</li>
+ * <li>Pre-payment {@code serviceNumber} verification (optional).</li>
+ * <li>History over the last 7 days.</li>
  * </ol>
  *
  * <h2>How to run</h2>
+ *
  * <pre>{@code
  * cp smoke-test.example.json smoke-test.json
  * # edit smoke-test.json to fill in baseUrl, publicKey, secretKey, and the
@@ -89,7 +104,8 @@ import java.util.TreeMap;
  * ./gradlew runSmokeTest --console=plain --args="path/to/my-config.json"
  * }</pre>
  *
- * <p>Exit code is 0 when every non-skipped scenario passes, 1 on any failure,
+ * <p>
+ * Exit code is 0 when every non-skipped scenario passes, 1 on any failure,
  * 2 on configuration errors before the client could start.
  */
 public final class SmokeTest {
@@ -133,13 +149,13 @@ public final class SmokeTest {
             scenarioAccount(client);
             scenarioMerchants(client);
             scenarioServices(client);
-            scenarioCashout(client);        // collection
+            scenarioCashout(client); // collection
             scenarioBill(client);
             scenarioTopup(client);
             scenarioVoucher(client);
             scenarioProduct(client);
             scenarioSubscription(client);
-            scenarioCashin(client);         // disbursement
+            scenarioCashin(client); // disbursement
             scenarioVerifyServiceNumber(client);
             scenarioValidateAccount(client);
             scenarioHistoryLast7Days(client);
@@ -359,18 +375,36 @@ public final class SmokeTest {
     }
 
     private void scenarioCashin(SmobilpayClient client) {
-        run("Disbursement — cash-in (discover + quote)", () -> {
-            SmokeTestConfig.CashinCfg c = cfg.cashin();
-            if (c == null) {
+        SmokeTestConfig.CashinCfg cashin = cfg.cashin();
+        boolean willCollect = cashin != null && cashin.collect();
+        String name = "Disbursement — cash-in (discover + quote"
+                + (willCollect ? " + collect)" : ")");
+        run(name, () -> {
+            if (cashin == null) {
                 skip("no 'cashin' block in config");
             }
-            List<Cashin> items = client.masterdata().cashins(c.serviceId());
-            require(items != null && !items.isEmpty(), "no cashin items for serviceId=" + c.serviceId());
+            if (willCollect) {
+                require(notBlank(cashin.customerPhonenumber()),
+                        "'cashin.collect' is true but 'cashin.customerPhonenumber' is missing");
+                require(notBlank(cashin.customerEmailaddress()),
+                        "'cashin.collect' is true but 'cashin.customerEmailaddress' is missing");
+                require(notBlank(cashin.serviceNumber()),
+                        "'cashin.collect' is true but 'cashin.serviceNumber' is missing");
+            }
+            List<Cashin> items = client.masterdata().cashins(cashin.serviceId());
+            require(items != null && !items.isEmpty(), "no cashin items for serviceId=" + cashin.serviceId());
             Cashin item = items.get(0);
             detail("picked: " + item.payItemId() + " (" + item.name()
                     + ", " + item.amountType() + ", local=" + item.amountLocalCur() + " " + item.localCur() + ")");
-            quoteAndReport(client, item, c.amount());
+            QuoteResponse quote = quoteOnly(client, item, cashin.amount());
+            if (willCollect) {
+                collectAndReport(client, quote, cashin);
+            }
         });
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
     }
 
     private void scenarioVerifyServiceNumber(SmobilpayClient client) {
@@ -426,7 +460,7 @@ public final class SmokeTest {
             require(rows != null, "null response");
             detail("range:        " + weekAgo + " -> " + today);
             detail("transactions: " + rows.size());
-            int sample = Math.min(3, rows.size());
+            int sample = Math.min(30, rows.size());
             for (int i = 0; i < sample; i++) {
                 PaymentStatus s = rows.get(i);
                 detail("  - " + s.ptn() + " : " + s.status()
@@ -439,6 +473,11 @@ public final class SmokeTest {
     // --- Helpers ----------------------------------------------------------
 
     private void quoteAndReport(SmobilpayClient client, PaymentItem item, int amount) {
+        quoteOnly(client, item, amount);
+        detail("(intentionally NOT calling /v2/collectstd)");
+    }
+
+    private QuoteResponse quoteOnly(SmobilpayClient client, PaymentItem item, int amount) {
         QuoteResponse quote = client.initiate().quote(new QuoteRequest(amount, item.payItemId()));
         require(quote != null && quote.quoteId() != null, "empty quote");
         detail("quoteId:        " + quote.quoteId());
@@ -446,7 +485,38 @@ public final class SmokeTest {
         detail("price (local):  " + quote.priceLocalCur() + " " + quote.localCur());
         detail("price (system): " + quote.priceSystemCur() + " " + quote.systemCur());
         detail("promotion:      " + quote.promotion());
-        detail("(intentionally NOT calling /v2/collectstd)");
+        return quote;
+    }
+
+    /**
+     * Execute a real {@code POST /v2/collectstd} against the previously
+     * issued quote. All identifying fields come straight from the
+     * {@code cashin} config block so the harness never invents customer
+     * data.
+     */
+    private void collectAndReport(SmobilpayClient client, QuoteResponse quote, SmokeTestConfig.CashinCfg cashin) {
+        String trid = "java-smoke-" + System.currentTimeMillis();
+        CollectionRequest request = CollectionRequest.builder(
+                quote.quoteId(),
+                cashin.customerPhonenumber(),
+                cashin.customerEmailaddress())
+                .serviceNumber(cashin.serviceNumber())
+                .trid(trid)
+                .build();
+        detail("POST /v2/collectstd  trid=" + trid
+                + "  customerPhonenumber=" + cashin.customerPhonenumber()
+                + "  serviceNumber=" + cashin.serviceNumber());
+        CollectionResponse resp = client.confirm().collect(request);
+        require(resp != null && resp.ptn() != null, "empty collection response");
+        detail("status:         " + resp.status());
+        detail("ptn:            " + resp.ptn());
+        detail("receiptNumber:  " + resp.receiptNumber());
+        detail("veriCode:       " + resp.veriCode());
+        detail("price (local):  " + resp.priceLocalCur() + " " + resp.localCur());
+        detail("price (system): " + resp.priceSystemCur() + " " + resp.systemCur());
+        detail("agentBalance:   " + resp.agentBalance());
+        detail("trid:           " + resp.trid());
+        detail("timestamp:      " + resp.timestamp());
     }
 
     /**

@@ -31,7 +31,11 @@ public record SmokeTestConfig(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record CashinCfg(
             @JsonProperty("serviceId") long serviceId,
-            @JsonProperty("amount") int amount
+            @JsonProperty("amount") int amount,
+            @JsonProperty("collect") boolean collect,
+            @JsonProperty("customerPhonenumber") String customerPhonenumber,
+            @JsonProperty("customerEmailaddress") String customerEmailaddress,
+            @JsonProperty("serviceNumber") String serviceNumber
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

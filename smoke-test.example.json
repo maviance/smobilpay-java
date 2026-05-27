@@ -42,9 +42,13 @@
   },
 
   "cashin": {
-    "_comment": "Disbursement — money flows INTO recipient wallet. Source row 19: CMMTNMOMO Cash-In / Retrait, serviceId 20052, MSISDN 677389120. Other options: row 17 CMORANGEOM Cash-In (30052 / 697707102), row 21 CMYOOMEEMONEY Cashin (100237 / 242254751).",
+    "_comment": "Disbursement — money flows INTO recipient wallet. Source row 19: CMMTNMOMO Cash-In / Retrait, serviceId 20052, MSISDN 677389120 (note: 677389120 is server-blocked on acceptance with respCode 40305 — use CMORANGEMOMO 50052 / 699999999 instead, verified working). Other options: row 17 CMORANGEOM Cash-In (30052 / 697707102), row 21 CMYOOMEEMONEY Cashin (100237 / 242254751). Set 'collect' to true (with customerPhonenumber, customerEmailaddress, serviceNumber) to follow the quote with a real POST /v2/collectstd — this MOVES MONEY on the configured environment. Omit 'collect' or set it to false to stay quote-only.",
     "serviceId": 20052,
-    "amount": 1000
+    "amount": 1000,
+    "collect": false,
+    "customerPhonenumber": null,
+    "customerEmailaddress": null,
+    "serviceNumber": null
   },
 
   "verify": {
