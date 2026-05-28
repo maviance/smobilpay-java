@@ -49,9 +49,9 @@ public final class AccountValidationApi {
      * account from one that has been cross-checked against the provider.
      *
      * <p><strong>Restricted endpoint.</strong> Access is granted only to
-     * partners who have cleared Maviance's internal validation and
-     * compliance review (KYC / data-protection obligations apply to the
-     * returned customer name). Unauthorized callers receive HTTP 401 as a
+     * partners who have cleared the upstream compliance review (KYC /
+     * data-protection obligations apply to the returned customer name).
+     * Unauthorized callers receive HTTP 401 as a
      * {@code SmobilpayApiException}. Contact your integration manager to
      * request enablement.
      */

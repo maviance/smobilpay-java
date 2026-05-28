@@ -10,7 +10,7 @@ import java.util.Objects;
  * <p>Holds the partner base URL, OAuth 2.0 client credentials ({@code publicKey}
  * / {@code secretKey}), the {@code x-api-version} header value, and per-request
  * timeouts. The base URL, credentials, and callback registration are issued by
- * Maviance support during partner onboarding.
+ * your partner onboarding contact.
  *
  * <p>Use {@link #builder()} to construct an instance.
  */

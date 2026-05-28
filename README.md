@@ -28,7 +28,7 @@ services, and drive a payment UI from the static catalog.
 ## Requirements
 
 - **Java 17 or newer** at runtime and at build time.
-- Network access to the base URL issued by Maviance support.
+- Network access to the base URL issued by your partner onboarding contact.
 - An OAuth 2.0 credential pair (`publicKey` / `secretKey`) issued during
   partner onboarding.
 
@@ -430,9 +430,9 @@ SmobilpayClient client = SmobilpayClient.create(config, http);
 ## Onboarding
 
 Base URL, partner credentials (`publicKey` / `secretKey`), callback URL
-registration, and the full error catalog are issued by Maviance support
-during partner onboarding. They are intentionally not published in the
-spec or this README. Contact **support@smobilpay.com**.
+registration, and the full error catalog are issued during partner
+onboarding. They are intentionally not published in the spec or this
+README — contact your partner support channel to obtain them.
 
 ## Development
 
@@ -466,4 +466,5 @@ Publish to local Maven cache:
 
 ## License
 
-Proprietary — Maviance.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for
+the full text.

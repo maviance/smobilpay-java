@@ -48,7 +48,7 @@ class VerifyApiTest extends WireMockTestBase {
                                 + "\"agentId\":\"AG-001\",\"agentName\":\"Alice\","
                                 + "\"agentAddress\":\"Yaoundé\","
                                 + "\"agentPhonenumber\":\"237699999999\","
-                                + "\"companyName\":\"Maviance\","
+                                + "\"companyName\":\"Acme Pay\","
                                 + "\"companyAddress\":\"HQ\","
                                 + "\"companyPhonenumber\":\"237699111111\","
                                 + "\"limitMax\":100000.0,\"limitRemaining\":50000.0}")));

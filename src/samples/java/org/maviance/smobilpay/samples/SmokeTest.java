@@ -239,8 +239,9 @@ public final class SmokeTest {
             }
 
             // Hints for finding hard-to-source serviceIds in the config file:
-            // voucher, subscription, and verifiable services are rare in the
-            // acceptance catalog and not always listed on the wiki test-data page.
+            // voucher, subscription, and verifiable services are rare in most
+            // catalogs, so we list them explicitly to help populate
+            // smoke-test.json.
             listServicesOfType(services, ServiceType.VOUCHER, "VOUCHER services");
             listServicesOfType(services, ServiceType.SUBSCRIPTION, "SUBSCRIPTION services");
             listVerifiableServices(services);
@@ -453,7 +454,7 @@ public final class SmokeTest {
                 if (e.httpStatus() == 401) {
                     skip("GET /v2/validate is a restricted endpoint and is not enabled"
                             + " for this partner (HTTP 401). Compliance review is required —"
-                            + " contact your Maviance integration manager.");
+                            + " contact your integration manager.");
                 }
                 throw e;
             }
