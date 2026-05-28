@@ -20,7 +20,9 @@ import org.maviance.smobilpay.model.Cashin;
 import org.maviance.smobilpay.model.Cashout;
 import org.maviance.smobilpay.model.CollectionRequest;
 import org.maviance.smobilpay.model.CollectionResponse;
+import org.maviance.smobilpay.model.Commission;
 import org.maviance.smobilpay.model.CustomerAccount;
+import org.maviance.smobilpay.model.I18nText;
 import org.maviance.smobilpay.model.Merchant;
 import org.maviance.smobilpay.model.PaymentItem;
 import org.maviance.smobilpay.model.PaymentStatus;
@@ -171,10 +173,7 @@ public final class SmokeTest {
         run("Ping (auth probe)", () -> {
             Ping pong = client.verify().ping();
             require(pong != null && pong.version() != null, "empty response");
-            detail("server time:    " + pong.time());
-            detail("server version: " + pong.version());
-            detail("nonce echo:     " + pong.nonce());
-            detail("public key:     " + pong.key());
+            dumpPing(pong);
         });
     }
 
@@ -187,7 +186,9 @@ public final class SmokeTest {
             require(pong != null, "ping after refresh returned null");
             detail("first  bearer prefix: " + first.substring(0, Math.min(12, first.length())) + "...");
             detail("forced bearer prefix: " + forced.substring(0, Math.min(12, forced.length())) + "...");
-            detail("identical: " + first.equals(forced));
+            detail("identical:            " + first.equals(forced));
+            detail("--- ping response after refresh ---");
+            dumpPing(pong);
         });
     }
 
@@ -195,11 +196,7 @@ public final class SmokeTest {
         run("Account profile", () -> {
             Account account = client.verify().account();
             require(account != null, "empty response");
-            detail("agent:           " + account.agentName() + " (id=" + account.agentId() + ")");
-            detail("company:         " + account.companyName());
-            detail("balance:         " + account.balance() + " " + account.currency());
-            detail("daily limit max: " + account.limitMax());
-            detail("limit remaining: " + account.limitRemaining());
+            dumpAccount(account);
         });
     }
 
@@ -210,8 +207,8 @@ public final class SmokeTest {
             detail("merchants: " + merchants.size());
             int sample = Math.min(5, merchants.size());
             for (int i = 0; i < sample; i++) {
-                Merchant m = merchants.get(i);
-                detail("  - " + m.merchant() + " : " + m.name() + " (" + m.country() + ", " + m.status() + ")");
+                detail("--- merchant[" + i + "] ---");
+                dumpMerchant(merchants.get(i));
             }
             if (merchants.size() > sample) {
                 detail("  ...and " + (merchants.size() - sample) + " more");
@@ -231,6 +228,15 @@ public final class SmokeTest {
             }
             detail("distribution by type:");
             byType.forEach((t, c) -> detail("  - " + t + ": " + c));
+
+            int sample = Math.min(3, services.size());
+            for (int i = 0; i < sample; i++) {
+                detail("--- service[" + i + "] (full dump) ---");
+                dumpService(services.get(i));
+            }
+            if (services.size() > sample) {
+                detail("  ...and " + (services.size() - sample) + " more services not shown in full");
+            }
 
             // Hints for finding hard-to-source serviceIds in the config file:
             // voucher, subscription, and verifiable services are rare in the
@@ -273,9 +279,10 @@ public final class SmokeTest {
             }
             List<Cashout> items = client.masterdata().cashouts(c.serviceId());
             require(items != null && !items.isEmpty(), "no cashout items for serviceId=" + c.serviceId());
+            detail("cashout items: " + items.size());
             Cashout item = items.get(0);
-            detail("picked: " + item.payItemId() + " (" + item.name()
-                    + ", " + item.amountType() + ", local=" + item.amountLocalCur() + " " + item.localCur() + ")");
+            detail("--- picked cashout[0] (full dump) ---");
+            dumpPaymentItem(item);
             quoteAndReport(client, item, c.amount());
         });
     }
@@ -289,10 +296,10 @@ public final class SmokeTest {
             List<Bill> bills = client.initiate().bills(c.merchant(), c.serviceId(), c.serviceNumber());
             require(bills != null && !bills.isEmpty(),
                     "no bills for " + c.merchant() + "/" + c.serviceId() + "/" + c.serviceNumber());
+            detail("bills: " + bills.size());
             Bill bill = bills.get(0);
-            detail("picked: " + bill.payItemId() + " (" + bill.billType()
-                    + ", amount=" + bill.amountLocalCur() + " " + bill.localCur()
-                    + ", due=" + bill.billDueDate() + ")");
+            detail("--- picked bill[0] (full dump) ---");
+            dumpBill(bill);
             quoteAndReport(client, bill, bill.amountLocalCur().intValue());
         });
     }
@@ -305,9 +312,10 @@ public final class SmokeTest {
             }
             List<Topup> items = client.masterdata().topups(c.serviceId());
             require(items != null && !items.isEmpty(), "no topup items for serviceId=" + c.serviceId());
+            detail("topup items: " + items.size());
             Topup item = items.get(0);
-            detail("picked: " + item.payItemId() + " (" + item.name()
-                    + ", " + item.amountType() + ", local=" + item.amountLocalCur() + " " + item.localCur() + ")");
+            detail("--- picked topup[0] (full dump) ---");
+            dumpPaymentItem(item);
             quoteAndReport(client, item, c.amount());
         });
     }
@@ -329,9 +337,10 @@ public final class SmokeTest {
                 throw e;
             }
             require(items != null && !items.isEmpty(), "no vouchers for serviceId=" + c.serviceId());
+            detail("voucher items: " + items.size());
             Product item = items.get(0);
-            detail("picked: " + item.payItemId() + " (" + item.name()
-                    + ", " + item.amountType() + ", local=" + item.amountLocalCur() + " " + item.localCur() + ")");
+            detail("--- picked voucher[0] (full dump) ---");
+            dumpPaymentItem(item);
             quoteAndReport(client, item, resolveAmount(item, c.amount()));
         });
     }
@@ -344,9 +353,10 @@ public final class SmokeTest {
             }
             List<Product> items = client.masterdata().products(c.serviceId());
             require(items != null && !items.isEmpty(), "no products for serviceId=" + c.serviceId());
+            detail("product items: " + items.size());
             Product item = items.get(0);
-            detail("picked: " + item.payItemId() + " (" + item.name()
-                    + ", " + item.amountType() + ", local=" + item.amountLocalCur() + " " + item.localCur() + ")");
+            detail("--- picked product[0] (full dump) ---");
+            dumpPaymentItem(item);
             quoteAndReport(client, item, resolveAmount(item, c.amount()));
         });
     }
@@ -365,11 +375,10 @@ public final class SmokeTest {
             require(subs != null && !subs.isEmpty(),
                     "no subscriptions for " + c.merchant() + "/" + c.serviceId()
                             + " (serviceNumber=" + c.serviceNumber() + ", customerNumber=" + c.customerNumber() + ")");
+            detail("subscriptions: " + subs.size());
             Subscription sub = subs.get(0);
-            detail("picked: " + sub.payItemId() + " (" + sub.name()
-                    + ", customer=" + sub.customerName()
-                    + ", amount=" + sub.amountLocalCur() + " " + sub.localCur()
-                    + ", due=" + sub.dueDate() + ")");
+            detail("--- picked subscription[0] (full dump) ---");
+            dumpSubscription(sub);
             quoteAndReport(client, sub, resolveAmount(sub, c.amount()));
         });
     }
@@ -393,9 +402,10 @@ public final class SmokeTest {
             }
             List<Cashin> items = client.masterdata().cashins(cashin.serviceId());
             require(items != null && !items.isEmpty(), "no cashin items for serviceId=" + cashin.serviceId());
+            detail("cashin items: " + items.size());
             Cashin item = items.get(0);
-            detail("picked: " + item.payItemId() + " (" + item.name()
-                    + ", " + item.amountType() + ", local=" + item.amountLocalCur() + " " + item.localCur() + ")");
+            detail("--- picked cashin[0] (full dump) ---");
+            dumpPaymentItem(item);
             QuoteResponse quote = quoteOnly(client, item, cashin.amount());
             if (willCollect) {
                 collectAndReport(client, quote, cashin);
@@ -438,9 +448,7 @@ public final class SmokeTest {
                 CustomerAccount account = client.accountValidation()
                         .validateAccount(c.destination(), c.serviceId());
                 require(account != null, "empty response");
-                detail("destination: " + account.destination());
-                detail("status:      " + account.status());
-                detail("name:        " + account.name());
+                dumpCustomerAccount(account);
             } catch (SmobilpayApiException e) {
                 if (e.httpStatus() == 401) {
                     skip("GET /v2/validate is a restricted endpoint and is not enabled"
@@ -460,12 +468,19 @@ public final class SmokeTest {
             require(rows != null, "null response");
             detail("range:        " + weekAgo + " -> " + today);
             detail("transactions: " + rows.size());
-            int sample = Math.min(30, rows.size());
+            int sample = Math.min(5, rows.size());
             for (int i = 0; i < sample; i++) {
-                PaymentStatus s = rows.get(i);
-                detail("  - " + s.ptn() + " : " + s.status()
-                        + ", " + s.priceLocalCur() + " " + s.localCur()
-                        + ", trid=" + s.trid());
+                detail("--- transaction[" + i + "] (full dump) ---");
+                dumpPaymentStatus(rows.get(i));
+            }
+            if (rows.size() > sample) {
+                detail("--- remaining transactions (one-line summary) ---");
+                for (int i = sample; i < rows.size(); i++) {
+                    PaymentStatus s = rows.get(i);
+                    detail("  - " + s.ptn() + " : " + s.status()
+                            + ", " + s.priceLocalCur() + " " + s.localCur()
+                            + ", trid=" + s.trid());
+                }
             }
         });
     }
@@ -480,11 +495,8 @@ public final class SmokeTest {
     private QuoteResponse quoteOnly(SmobilpayClient client, PaymentItem item, int amount) {
         QuoteResponse quote = client.initiate().quote(new QuoteRequest(amount, item.payItemId()));
         require(quote != null && quote.quoteId() != null, "empty quote");
-        detail("quoteId:        " + quote.quoteId());
-        detail("expiresAt:      " + quote.expiresAt());
-        detail("price (local):  " + quote.priceLocalCur() + " " + quote.localCur());
-        detail("price (system): " + quote.priceSystemCur() + " " + quote.systemCur());
-        detail("promotion:      " + quote.promotion());
+        detail("--- quote response (full dump) ---");
+        dumpQuoteResponse(quote);
         return quote;
     }
 
@@ -508,15 +520,8 @@ public final class SmokeTest {
                 + "  serviceNumber=" + cashin.serviceNumber());
         CollectionResponse resp = client.confirm().collect(request);
         require(resp != null && resp.ptn() != null, "empty collection response");
-        detail("status:         " + resp.status());
-        detail("ptn:            " + resp.ptn());
-        detail("receiptNumber:  " + resp.receiptNumber());
-        detail("veriCode:       " + resp.veriCode());
-        detail("price (local):  " + resp.priceLocalCur() + " " + resp.localCur());
-        detail("price (system): " + resp.priceSystemCur() + " " + resp.systemCur());
-        detail("agentBalance:   " + resp.agentBalance());
-        detail("trid:           " + resp.trid());
-        detail("timestamp:      " + resp.timestamp());
+        detail("--- collection response (full dump) ---");
+        dumpCollectionResponse(resp);
     }
 
     /**
@@ -537,6 +542,194 @@ public final class SmokeTest {
         throw new IllegalStateException("item " + item.payItemId()
                 + " has no fixed catalog amount (got " + local
                 + "). Set \"amount\" in this block of smoke-test.json.");
+    }
+
+    // --- Full-field dumps -------------------------------------------------
+    //
+    // Each method prints every field of the corresponding record so the
+    // operator can visually confirm the wire payload was parsed correctly.
+    // Null and default values are printed verbatim — that is intentional.
+
+    private void field(String name, Object value) {
+        detail(String.format("  %-22s %s", name + ":", value));
+    }
+
+    private void dumpPing(Ping p) {
+        field("time", p.time());
+        field("version", p.version());
+        field("nonce", p.nonce());
+        field("key", p.key());
+    }
+
+    private void dumpAccount(Account a) {
+        field("balance", a.balance());
+        field("currency", a.currency());
+        field("key", a.key());
+        field("agentId", a.agentId());
+        field("agentName", a.agentName());
+        field("agentAddress", a.agentAddress());
+        field("agentPhonenumber", a.agentPhonenumber());
+        field("companyName", a.companyName());
+        field("companyAddress", a.companyAddress());
+        field("companyPhonenumber", a.companyPhonenumber());
+        field("limitMax", a.limitMax());
+        field("limitRemaining", a.limitRemaining());
+    }
+
+    private void dumpMerchant(Merchant m) {
+        field("merchant", m.merchant());
+        field("name", m.name());
+        field("description", m.description());
+        field("country", m.country());
+        field("status", m.status());
+        field("logo", m.logo());
+        field("logoHash", m.logoHash());
+        field("category", m.category());
+    }
+
+    private void dumpService(Service s) {
+        field("serviceid", s.serviceid());
+        field("merchant", s.merchant());
+        field("title", s.title());
+        field("description", s.description());
+        field("category", s.category());
+        field("country", s.country());
+        field("localCur", s.localCur());
+        field("type", s.type());
+        field("status", s.status());
+        field("isReqCustomerName", s.isReqCustomerName());
+        field("isReqCustomerAddress", s.isReqCustomerAddress());
+        field("isReqCustomerNumber", s.isReqCustomerNumber());
+        field("isReqServiceNumber", s.isReqServiceNumber());
+        field("isVerifiable", s.isVerifiable());
+        field("labelCustomerNumber", i18nList(s.labelCustomerNumber()));
+        field("labelServiceNumber", i18nList(s.labelServiceNumber()));
+        field("hint", i18nList(s.hint()));
+        field("validationMask", s.validationMask());
+        field("denomination", s.denomination());
+    }
+
+    private String i18nList(List<I18nText> items) {
+        if (items == null) {
+            return "null";
+        }
+        if (items.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < items.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            I18nText t = items.get(i);
+            sb.append(t.language()).append("=\"").append(t.localText()).append("\"");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private void dumpPaymentItem(PaymentItem item) {
+        field("serviceid", item.serviceid());
+        field("merchant", item.merchant());
+        field("payItemId", item.payItemId());
+        field("payItemDescr", item.payItemDescr());
+        field("amountType", item.amountType());
+        field("localCur", item.localCur());
+        field("name", item.name());
+        field("amountLocalCur", item.amountLocalCur());
+        field("description", item.description());
+        field("optStrg", item.optStrg());
+        field("optNmb", item.optNmb());
+    }
+
+    private void dumpBill(Bill b) {
+        dumpPaymentItem(b);
+        field("billType", b.billType());
+        field("penaltyAmount", b.penaltyAmount());
+        field("payOrder", b.payOrder());
+        field("serviceNumber", b.serviceNumber());
+        field("billNumber", b.billNumber());
+        field("customerNumber", b.customerNumber());
+        field("billMonth", b.billMonth());
+        field("billYear", b.billYear());
+        field("billDate", b.billDate());
+        field("billDueDate", b.billDueDate());
+    }
+
+    private void dumpSubscription(Subscription s) {
+        dumpPaymentItem(s);
+        field("serviceNumber", s.serviceNumber());
+        field("customerReference", s.customerReference());
+        field("customerName", s.customerName());
+        field("customerNumber", s.customerNumber());
+        field("startDate", s.startDate());
+        field("dueDate", s.dueDate());
+        field("endDate", s.endDate());
+    }
+
+    private void dumpQuoteResponse(QuoteResponse q) {
+        field("quoteId", q.quoteId());
+        field("expiresAt", q.expiresAt());
+        field("payItemId", q.payItemId());
+        field("amountLocalCur", q.amountLocalCur());
+        field("priceLocalCur", q.priceLocalCur());
+        field("priceSystemCur", q.priceSystemCur());
+        field("localCur", q.localCur());
+        field("systemCur", q.systemCur());
+        field("promotion", q.promotion());
+    }
+
+    private void dumpCollectionResponse(CollectionResponse r) {
+        field("ptn", r.ptn());
+        field("timestamp", r.timestamp());
+        field("agentBalance", r.agentBalance());
+        field("receiptNumber", r.receiptNumber());
+        field("veriCode", r.veriCode());
+        field("priceLocalCur", r.priceLocalCur());
+        field("priceSystemCur", r.priceSystemCur());
+        field("localCur", r.localCur());
+        field("systemCur", r.systemCur());
+        field("trid", r.trid());
+        field("pin", r.pin());
+        field("status", r.status());
+        field("payItemId", r.payItemId());
+        field("payItemDescr", r.payItemDescr());
+        field("tag", r.tag());
+    }
+
+    private void dumpCustomerAccount(CustomerAccount a) {
+        field("status", a.status());
+        field("name", a.name());
+        field("destination", a.destination());
+    }
+
+    private void dumpPaymentStatus(PaymentStatus s) {
+        field("ptn", s.ptn());
+        field("serviceid", s.serviceid());
+        field("merchant", s.merchant());
+        field("timestamp", s.timestamp());
+        field("receiptNumber", s.receiptNumber());
+        field("veriCode", s.veriCode());
+        field("clearingDate", s.clearingDate());
+        field("trid", s.trid());
+        field("priceLocalCur", s.priceLocalCur());
+        field("priceSystemCur", s.priceSystemCur());
+        field("localCur", s.localCur());
+        field("systemCur", s.systemCur());
+        field("pin", s.pin());
+        field("status", s.status());
+        field("payItemId", s.payItemId());
+        field("payItemDescr", s.payItemDescr());
+        field("errorCode", s.errorCode());
+        field("tag", s.tag());
+        field("commission", formatCommission(s.commission()));
+    }
+
+    private String formatCommission(Commission c) {
+        if (c == null) {
+            return "null";
+        }
+        return "earnings=" + c.earnings() + " currency=" + c.currency();
     }
 
     // --- Harness mechanics ------------------------------------------------
