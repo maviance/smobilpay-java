@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.maviance.smobilpay.SmobilpayApiException;
 import org.maviance.smobilpay.SmobilpayConfig;
 import org.maviance.smobilpay.SmobilpayException;
+import org.maviance.smobilpay.SmobilpayTimeoutException;
 import org.maviance.smobilpay.auth.OAuth2TokenManager;
 import org.maviance.smobilpay.model.ApiError;
 
@@ -14,6 +15,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 
 /**
@@ -81,6 +83,13 @@ public final class HttpTransport {
     public HttpResponse<String> sendRaw(HttpRequest request) {
         try {
             return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (HttpTimeoutException e) {
+            // Covers both connect timeouts (HttpConnectTimeoutException) and
+            // response timeouts. Surface as a typed subtype so callers can
+            // distinguish a timeout from other transport failures.
+            Duration timeout = config.requestTimeout();
+            throw new SmobilpayTimeoutException(
+                    "Request timed out after " + timeout + ": " + e.getMessage(), timeout, e);
         } catch (IOException e) {
             throw new SmobilpayException("HTTP transport error: " + e.getMessage(), e);
         } catch (InterruptedException e) {

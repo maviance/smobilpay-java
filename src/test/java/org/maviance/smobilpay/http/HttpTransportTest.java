@@ -2,12 +2,20 @@ package org.maviance.smobilpay.http;
 
 import org.junit.jupiter.api.Test;
 import org.maviance.smobilpay.SmobilpayApiException;
+import org.maviance.smobilpay.SmobilpayClient;
+import org.maviance.smobilpay.SmobilpayConfig;
 import org.maviance.smobilpay.SmobilpayException;
+import org.maviance.smobilpay.SmobilpayTimeoutException;
 import org.maviance.smobilpay.WireMockTestBase;
 import org.maviance.smobilpay.model.Ping;
 
+import java.net.http.HttpTimeoutException;
+import java.time.Duration;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -75,6 +83,43 @@ class HttpTransportTest extends WireMockTestBase {
 
         Ping ping = client.verify().ping();
         assertThat(ping.version()).isEqualTo("3.0.0");
+    }
+
+    @Test
+    void timeoutThrowsTypedTimeoutException() {
+        SmobilpayConfig shortTimeout = SmobilpayConfig.builder()
+                .baseUrl("http://localhost:" + wireMock.port())
+                .credentials(PUBLIC_KEY, SECRET_KEY)
+                .requestTimeout(Duration.ofMillis(500))
+                .build();
+
+        try (SmobilpayClient shortClient = SmobilpayClient.create(shortTimeout)) {
+            // Prime the token cache and warm the HTTP client up-front (the token
+            // endpoint is stubbed with no delay) so the only thing that can blow
+            // the 500ms budget below is the deliberately delayed /v2/ping — the
+            // API request path under test, not the token-mint path.
+            shortClient.tokens().refresh();
+
+            // Now make /v2/ping take 3s; the client gives up after 500ms.
+            wireMock.stubFor(get(urlEqualTo("/v2/ping"))
+                    .willReturn(aResponse().withStatus(200)
+                            .withFixedDelay(3000)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"time\":\"2026-05-02T08:30:00+00:00\","
+                                    + "\"version\":\"3.0.0\",\"nonce\":\"abc\",\"key\":\"def\"}")));
+
+            assertThatThrownBy(() -> shortClient.verify().ping())
+                    .isInstanceOf(SmobilpayTimeoutException.class)
+                    .isInstanceOf(SmobilpayException.class)
+                    .hasCauseInstanceOf(HttpTimeoutException.class)
+                    .satisfies(t -> assertThat(((SmobilpayTimeoutException) t).timeout())
+                            .isEqualTo(Duration.ofMillis(500)));
+
+            // The timeout was on the API leg: the token mint succeeded and the
+            // ping was actually attempted.
+            wireMock.verify(postRequestedFor(urlEqualTo("/oauth/token")));
+            wireMock.verify(getRequestedFor(urlEqualTo("/v2/ping")));
+        }
     }
 
     @Test

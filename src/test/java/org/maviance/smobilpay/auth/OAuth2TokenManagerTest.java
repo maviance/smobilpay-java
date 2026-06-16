@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.maviance.smobilpay.SmobilpayAuthException;
 import org.maviance.smobilpay.SmobilpayConfig;
+import org.maviance.smobilpay.SmobilpayException;
+import org.maviance.smobilpay.SmobilpayTimeoutException;
 import org.maviance.smobilpay.http.JsonMapper;
 
 import java.net.http.HttpClient;
@@ -203,6 +205,30 @@ class OAuth2TokenManagerTest {
         OAuth2TokenManager manager = new OAuth2TokenManager(httpClient, mapper, config);
         assertThatThrownBy(manager::accessToken)
                 .isInstanceOf(SmobilpayAuthException.class);
+    }
+
+    @Test
+    void wrapsTokenEndpointTimeoutAsTimeoutException() {
+        // Token endpoint takes 3s to respond; the client gives up after 500ms.
+        SmobilpayConfig shortTimeout = SmobilpayConfig.builder()
+                .baseUrl("http://localhost:" + wireMock.port())
+                .credentials(PUBLIC_KEY, SECRET_KEY)
+                .requestTimeout(Duration.ofMillis(500))
+                .build();
+        wireMock.stubFor(post(urlEqualTo("/oauth/token"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withFixedDelay(3000)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"access_token\":\"abc\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
+
+        OAuth2TokenManager manager = new OAuth2TokenManager(httpClient, mapper, shortTimeout);
+
+        assertThatThrownBy(manager::accessToken)
+                .isInstanceOf(SmobilpayTimeoutException.class)
+                .isInstanceOf(SmobilpayException.class)
+                .satisfies(t -> assertThat(((SmobilpayTimeoutException) t).timeout())
+                        .isEqualTo(Duration.ofMillis(500)));
     }
 
     @Test

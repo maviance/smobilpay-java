@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.maviance.smobilpay.SmobilpayAuthException;
 import org.maviance.smobilpay.SmobilpayConfig;
 import org.maviance.smobilpay.SmobilpayException;
+import org.maviance.smobilpay.SmobilpayTimeoutException;
 
 import java.io.IOException;
 import java.net.URI;
@@ -12,6 +13,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
@@ -103,6 +105,13 @@ public final class OAuth2TokenManager {
         HttpResponse<String> resp;
         try {
             resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (HttpTimeoutException e) {
+            // Covers connect and response timeouts on the token endpoint. Surface
+            // as the same typed subtype as API-call timeouts so a single
+            // catch (SmobilpayTimeoutException) covers every timeout source.
+            throw new SmobilpayTimeoutException(
+                    "OAuth token request timed out after " + config.requestTimeout()
+                            + ": " + e.getMessage(), config.requestTimeout(), e);
         } catch (IOException e) {
             throw new SmobilpayAuthException(0, null,
                     "Failed to call /oauth/token: " + e.getMessage(), e);
