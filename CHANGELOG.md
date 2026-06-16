@@ -39,6 +39,14 @@ release jumps from the `1.x` line directly to `3.2.0`.
 - HTTP transport now uses the JDK's built-in `java.net.http.HttpClient`; the
   only third-party runtime dependencies are Jackson Databind and SLF4J.
 
+### Fixed
+
+- **Reactive OAuth 401 refresh.** A `401` on a secured request now forces a
+  single token refresh and retries the request once, instead of surfacing
+  immediately as a `SmobilpayApiException`. Recovers from server-side token
+  expiry, clock drift, and revocation that proactive (clock-based) refresh
+  cannot detect. Bounded to one retry (MPAY-30042).
+
 ## [1.1.0] - 2025-01-24
 
 - Added `cdata`, `tag`, and `errorCode` fields; dependency fixes.

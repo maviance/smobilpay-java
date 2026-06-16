@@ -51,7 +51,9 @@ public final class AccountValidationApi {
      * <p><strong>Restricted endpoint.</strong> Access is granted only to
      * partners who have cleared the upstream compliance review (KYC /
      * data-protection obligations apply to the returned customer name).
-     * Unauthorized callers receive HTTP 401 as a
+     * Unauthorized callers receive HTTP 401; the client performs one automatic
+     * token refresh and retry on a 401, so when the cause is missing clearance
+     * the retry returns 401 again and surfaces as a
      * {@code SmobilpayApiException}. Contact your integration manager to
      * request enablement.
      */

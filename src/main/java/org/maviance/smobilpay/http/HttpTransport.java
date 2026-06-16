@@ -17,6 +17,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.function.Supplier;
 
 /**
  * Request/response engine for the Smobilpay client.
@@ -57,26 +58,19 @@ public final class HttpTransport {
     }
 
     public <T> T get(String path, QueryParams query, Class<T> type) {
-        HttpRequest req = authedRequestBuilder(path, query)
-                .GET()
-                .build();
-        return execute(req, type);
+        return execute(() -> authedRequestBuilder(path, query).GET().build(), type);
     }
 
     public <T> T get(String path, QueryParams query, TypeReference<T> type) {
-        HttpRequest req = authedRequestBuilder(path, query)
-                .GET()
-                .build();
-        return execute(req, type);
+        return execute(() -> authedRequestBuilder(path, query).GET().build(), type);
     }
 
     public <T> T post(String path, Object body, Class<T> type) {
         String json = writeJson(body);
-        HttpRequest req = authedRequestBuilder(path, QueryParams.of())
+        return execute(() -> authedRequestBuilder(path, QueryParams.of())
                 .header(HDR_CONTENT_TYPE, CT_JSON)
                 .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
-        return execute(req, type);
+                .build(), type);
     }
 
     /** Raw send (no auth header). Used by the OAuth token manager. */
@@ -130,16 +124,34 @@ public final class HttpTransport {
         }
     }
 
-    private <T> T execute(HttpRequest req, Class<T> type) {
-        HttpResponse<String> resp = sendRaw(req);
-        checkSuccess(resp);
+    private <T> T execute(Supplier<HttpRequest> request, Class<T> type) {
+        HttpResponse<String> resp = sendWithReauth(request);
         return readJson(resp.body(), type);
     }
 
-    private <T> T execute(HttpRequest req, TypeReference<T> type) {
-        HttpResponse<String> resp = sendRaw(req);
-        checkSuccess(resp);
+    private <T> T execute(Supplier<HttpRequest> request, TypeReference<T> type) {
+        HttpResponse<String> resp = sendWithReauth(request);
         return readJsonRef(resp.body(), type);
+    }
+
+    /**
+     * Sends the request, retrying once on a 401 after forcing a token refresh.
+     *
+     * <p>{@code request} is a supplier because the retry needs a fresh
+     * {@link HttpRequest}: a body publisher is single-use and the retry must
+     * carry the refreshed bearer. A 401 is rejected at the auth layer before
+     * any business logic runs, so retrying is safe even for non-idempotent
+     * POSTs. The retry is bounded to one attempt; a persistent 401 (e.g. a
+     * restricted endpoint) falls through to {@link #checkSuccess}.
+     */
+    private HttpResponse<String> sendWithReauth(Supplier<HttpRequest> request) {
+        HttpResponse<String> resp = sendRaw(request.get());
+        if (resp.statusCode() == 401) {
+            tokenManager.refresh();
+            resp = sendRaw(request.get());
+        }
+        checkSuccess(resp);
+        return resp;
     }
 
     private void checkSuccess(HttpResponse<String> resp) {

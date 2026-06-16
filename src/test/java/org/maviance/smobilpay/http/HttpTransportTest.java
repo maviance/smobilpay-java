@@ -7,16 +7,25 @@ import org.maviance.smobilpay.SmobilpayConfig;
 import org.maviance.smobilpay.SmobilpayException;
 import org.maviance.smobilpay.SmobilpayTimeoutException;
 import org.maviance.smobilpay.WireMockTestBase;
+import org.maviance.smobilpay.auth.OAuth2TokenManager;
 import org.maviance.smobilpay.model.Ping;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.net.http.HttpClient;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -59,6 +68,8 @@ class HttpTransportTest extends WireMockTestBase {
 
     @Test
     void carriesBlankBodyOn401WithNoEnvelope() {
+        // A 401 triggers one token refresh + retry; a persistent 401 then
+        // surfaces as SmobilpayApiException after exactly one retry (MPAY-30042).
         wireMock.stubFor(get(urlEqualTo("/v2/ping"))
                 .willReturn(aResponse().withStatus(401)));
 
@@ -69,6 +80,8 @@ class HttpTransportTest extends WireMockTestBase {
                     assertThat(e.httpStatus()).isEqualTo(401);
                     assertThat(e.error()).isEmpty();
                 });
+        // Bounded to a single retry: original attempt + one retry = 2 calls.
+        wireMock.verify(2, getRequestedFor(urlEqualTo("/v2/ping")));
     }
 
     @Test
@@ -132,5 +145,69 @@ class HttpTransportTest extends WireMockTestBase {
         assertThatThrownBy(() -> client.verify().ping())
                 .isInstanceOf(SmobilpayException.class)
                 .hasMessageContaining("parse");
+    }
+
+    @Test
+    void refreshesAndRetriesOn401ThenSucceeds() {
+        // Token endpoint mints distinct tokens so we can prove the retry
+        // carries the refreshed bearer; ping returns 401 once, then 200.
+        wireMock.stubFor(post(urlEqualTo("/oauth/token")).inScenario("tokens")
+                .whenScenarioStateIs(STARTED)
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"access_token\":\"tok-1\",\"token_type\":\"Bearer\",\"expires_in\":3600}"))
+                .willSetStateTo("minted-1"));
+        wireMock.stubFor(post(urlEqualTo("/oauth/token")).inScenario("tokens")
+                .whenScenarioStateIs("minted-1")
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"access_token\":\"tok-2\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
+
+        wireMock.stubFor(get(urlEqualTo("/v2/ping")).inScenario("ping")
+                .whenScenarioStateIs(STARTED)
+                .willReturn(aResponse().withStatus(401))
+                .willSetStateTo("got-401"));
+        wireMock.stubFor(get(urlEqualTo("/v2/ping")).inScenario("ping")
+                .whenScenarioStateIs("got-401")
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"time\":\"2026-05-02T08:30:00+00:00\",\"version\":\"3.0.0\","
+                                + "\"nonce\":\"abc\",\"key\":\"def\"}")));
+
+        Ping ping = client.verify().ping();
+        assertThat(ping.version()).isEqualTo("3.0.0");
+
+        // The retry must carry the refreshed bearer, not the stale one.
+        wireMock.verify(getRequestedFor(urlEqualTo("/v2/ping"))
+                .withHeader("Authorization", equalTo("Bearer tok-2")));
+        wireMock.verify(2, getRequestedFor(urlEqualTo("/v2/ping")));
+    }
+
+    @Test
+    void postBodyIsResentOnRetryAfter401() {
+        // POST /v2/quotestd: 401 once, then 200. The retry must resend the JSON
+        // body (the first attempt consumed the body publisher).
+        wireMock.stubFor(post(urlEqualTo("/v2/quotestd")).inScenario("quote")
+                .whenScenarioStateIs(STARTED)
+                .willReturn(aResponse().withStatus(401))
+                .willSetStateTo("got-401"));
+        wireMock.stubFor(post(urlEqualTo("/v2/quotestd")).inScenario("quote")
+                .whenScenarioStateIs("got-401")
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"quoteId\":\"abc\"}")));
+
+        HttpClient httpClient = HttpClient.newHttpClient();
+        ObjectMapper mapper = new ObjectMapper();
+        OAuth2TokenManager tokens = new OAuth2TokenManager(httpClient, mapper, config);
+        HttpTransport transport = new HttpTransport(httpClient, mapper, config, tokens);
+
+        JsonNode out = transport.post("/v2/quotestd",
+                java.util.Map.of("amount", 500, "payItemId", "X"), JsonNode.class);
+        assertThat(out.get("quoteId").asText()).isEqualTo("abc");
+
+        // Both attempts must carry the same JSON body — proves the retry resends it.
+        wireMock.verify(2, postRequestedFor(urlEqualTo("/v2/quotestd"))
+                .withRequestBody(equalToJson("{\"amount\":500,\"payItemId\":\"X\"}")));
     }
 }
