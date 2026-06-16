@@ -2,6 +2,12 @@
 
 Java client library for the **Smobilpay partner API** (v3.2.0).
 
+> **Upgrading from HMAC?** v3.x is OAuth 2.0 only — HMAC request signing was
+> removed. Partners that still require HMAC must stay on the legacy **1.x**
+> line (git tag [`1.1.0`](https://github.com/maviance/smobilpay-java/releases/tag/1.1.0)),
+> which predates this `org.maviance:smobilpay-java-client` artifact. See
+> [CHANGELOG.md](CHANGELOG.md).
+
 This is the curated, partner-facing client. It covers every endpoint a
 partner integrator needs to move money in and out, sell value-added
 services, and drive a payment UI from the static catalog.
@@ -95,7 +101,8 @@ try (SmobilpayClient client = SmobilpayClient.create(config)) {
 ## Authentication
 
 The Smobilpay API uses **OAuth 2.0 `client_credentials`** exclusively.
-Legacy HMAC request signing is **not** supported.
+Legacy HMAC request signing is **not** supported — partners that still
+require HMAC must remain on the previous major version (the **1.x** line).
 
 The client handles token issuance for you:
 

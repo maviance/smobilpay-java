@@ -132,16 +132,25 @@ publishing {
             pom {
                 name = 'smobilpay-java-client'
                 description = 'Java client library for the Smobilpay partner API (v3.2.0).'
-                // TODO: Maven Central publishing requires `url`, `scm`, and a
-                // `developers` block. Set these before publishing — the public
-                // repository home and maintainer contact have not yet been
-                // chosen for this open-source release.
+                url = 'https://github.com/maviance/smobilpay-java'
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
                         url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
                         distribution = 'repo'
                     }
+                }
+                developers {
+                    developer {
+                        id = 'michael.nowag'
+                        name = 'Michael Nowag'
+                        email = 'michael.nowag@maviance.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/maviance/smobilpay-java.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/maviance/smobilpay-java.git'
+                    url = 'https://github.com/maviance/smobilpay-java'
                 }
             }
         }
